@@ -2,11 +2,33 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { PRIORITY_STYLE, TYPE_STYLE, isBoothUncertain } from '@/lib/badgeStyles';
-import { TYPE_LABELS, ENGAGEMENT_STATUS_OPTIONS } from '@/lib/filterConfig';
-import { ENGAGEMENT_STATUS_STYLE } from '@/lib/badgeStyles';
+import {
+  PRIORITY_STYLE,
+  TYPE_STYLE,
+  PRIORITY_CARD,
+  ENGAGEMENT_STATUS_STYLE,
+  eventBadgeColor,
+  isBoothUncertain,
+} from '@/lib/badgeStyles';
+import { TYPE_LABELS } from '@/lib/filterConfig';
 import type { IEntity, IEngagement, IEvent } from '@/api/types';
 import { MapPin } from 'lucide-react';
+
+function EventBadge({ short }: { short: string }) {
+  return (
+    <div className="flex w-11 flex-col overflow-hidden rounded-md border border-black/10 shadow-sm">
+      <div
+        className="flex h-7 items-center justify-center text-sm font-bold text-white"
+        style={{ background: eventBadgeColor(short) }}
+      >
+        {short}
+      </div>
+      <span className="bg-white/90 py-0.5 text-center text-[10px] font-bold text-slate-600">
+        展会
+      </span>
+    </div>
+  );
+}
 
 function EntityCard({
   entity,
@@ -20,69 +42,79 @@ function EntityCard({
   onOpen: () => void;
 }) {
   const status = engagement?.status || '待评估';
+  const card = PRIORITY_CARD[entity.priority];
+
   return (
-    <HoverCard openDelay={400} closeDelay={100}>
+    <HoverCard openDelay={450} closeDelay={100}>
       <HoverCardTrigger asChild>
         <motion.button
           type="button"
           onClick={onOpen}
-          whileHover={{ y: -3 }}
-          className={cn(
-            'flex h-full w-full flex-col rounded-xl border bg-card p-4 text-left shadow-sm transition-shadow hover:shadow-lg',
-          )}
+          whileHover={{ y: -4 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+          style={{ borderLeftColor: card.borderLeftColor, background: card.background }}
+          className="elev-card flex h-full w-full flex-col rounded-xl border border-l-[6px] border-border/70 p-4 text-left transition-shadow hover:shadow-xl"
         >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="truncate text-[15px] font-semibold">{entity.name}</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+          {/* 头部：名称/类型 + 展会徽章/匹配分 */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[16px] font-bold leading-snug">{entity.name}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
                 {TYPE_LABELS[entity.type]} · {entity.region}
               </p>
             </div>
-            <div className="flex shrink-0 flex-col items-end">
-              <span className="text-lg font-bold leading-none text-primary">{entity.score}</span>
-              <span className="text-[10px] text-muted-foreground">匹配分</span>
+            <div className="flex shrink-0 items-start gap-2">
+              <div className="flex max-w-[120px] flex-wrap justify-end gap-1">
+                {(entity.events || []).map((id) => (
+                  <EventBadge key={id} short={eventShort(id)} />
+                ))}
+              </div>
+              <div className="flex flex-col items-center rounded-lg bg-white/70 px-2 py-1 shadow-sm">
+                <span className="text-lg font-extrabold leading-none text-primary">
+                  {entity.score}
+                </span>
+                <span className="mt-0.5 text-[10px] text-muted-foreground">匹配分</span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-1">
-            <Badge variant="outline" className={cn('border', PRIORITY_STYLE[entity.priority])}>
+          {/* 优先级 + 标签 chips */}
+          <div className="mt-3 flex flex-wrap gap-1">
+            <Badge variant="outline" className={cn('border font-bold', PRIORITY_STYLE[entity.priority])}>
               {entity.priority} 优先
             </Badge>
-            {(entity.events || []).map((id) => (
-              <Badge key={id} variant="outline" className="border-border text-muted-foreground">
-                {eventShort(id)}
-              </Badge>
-            ))}
-          </div>
-
-          {entity.booth && (
-            <p
-              className={cn(
-                'mt-2 flex items-center gap-1 text-xs',
-                isBoothUncertain(entity.booth) ? 'text-amber-600' : 'text-muted-foreground',
-              )}
-            >
-              <MapPin className="size-3 shrink-0" />
-              <span className="truncate">{entity.booth}</span>
-            </p>
-          )}
-
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-            {entity.reason}
-          </p>
-
-          <div className="mt-auto flex flex-wrap gap-1 pt-3">
-            <Badge variant="outline" className={cn('border', TYPE_STYLE[entity.type])}>
-              {TYPE_LABELS[entity.type]}
-            </Badge>
-            {(entity.tags || []).slice(0, 3).map((t) => (
+            {(entity.tags || []).slice(0, 4).map((t) => (
               <Badge key={t} variant="secondary" className="font-normal">
                 {t}
               </Badge>
             ))}
           </div>
 
-          <div className="mt-2 border-t pt-2">
+          {/* 展位线索 */}
+          {entity.booth && (
+            <div
+              className={cn(
+                'mt-3 flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold',
+                isBoothUncertain(entity.booth)
+                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                  : 'border-blue-200 bg-blue-50 text-blue-700',
+              )}
+            >
+              <MapPin className="size-3.5 shrink-0" />
+              <span className="truncate">
+                {isBoothUncertain(entity.booth) ? '位置线索' : '展位'}：{entity.booth}
+              </span>
+            </div>
+          )}
+
+          {/* 推荐理由 */}
+          <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-slate-600">{entity.reason}</p>
+
+          {/* 底部：类型徽章 + 建联状态 */}
+          <div className="mt-auto flex items-center justify-between gap-2 border-t border-black/5 pt-3">
+            <Badge variant="outline" className={cn('border', TYPE_STYLE[entity.type])}>
+              {TYPE_LABELS[entity.type]}
+            </Badge>
             <Badge
               variant="outline"
               className={cn('border', ENGAGEMENT_STATUS_STYLE[status] || ENGAGEMENT_STATUS_STYLE['待评估'])}
@@ -129,7 +161,7 @@ export default function EntityGridSection({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-2">
       {entities.map((entity) => (
         <EntityCard
           key={entity.id}

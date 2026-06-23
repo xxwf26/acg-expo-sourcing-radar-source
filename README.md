@@ -38,24 +38,39 @@ acg-sourcing-radar-standalone/
 | `entities` | 建联对象（`excluded` 字段取代原 excludedEntityIds） | 36（18 excluded） |
 | `sources` | 信息源监控 | 4 |
 | `engagements` | 建联状态（取代原 localStorage，每对象一条，按 entityId upsert） | 动态 |
+| `users` | 系统用户（登录鉴权，密码 bcrypt 加密） | 2（admin/viewer） |
+
+## 登录与权限
+
+- 全站需登录后访问。未登录访问任何接口返回 401，前端自动跳登录页。
+- 两种角色：
+  - **admin**：可浏览 + 维护建联状态（状态/负责人/备注）。
+  - **viewer**：仅浏览，建联维护区只读。
+- 默认账号（首次 `db:seed-users` 生成，**请尽快改密码**）：
+  - 管理员：`admin` / `admin123`
+  - 只读：`viewer` / `viewer123`
+- `JWT_SECRET` 必填于 `server/.env`（`.env.example` 有生成命令）。token 默认 8 小时，勾"记住我"延长到 30 天。
+- 改密码/加用户：目前无 UI，改 `users` 表（密码需 bcrypt hash）或扩展 `seed-users.ts`。
 
 ## 首次启动
 
 前置：本机已装 MySQL 8 并运行在 `localhost:3306`。
 
 ```bash
-# 1. 配置后端环境变量（填入你的 MySQL 密码）
-cp server/.env.example server/.env   # 编辑 DB_PASSWORD
+# 1. 配置后端环境变量（填入 MySQL 密码 + 生成 JWT_SECRET）
+cp server/.env.example server/.env   # 编辑 DB_PASSWORD 和 JWT_SECRET
 
 # 2. 安装依赖
 npm run install:all
 
-# 3. 建库 + 迁移 + 灌种子（一步到位）
+# 3. 建库 + 迁移 + 灌种子 + 初始化用户
 npm run db:setup
+npm run db:seed-users   # 创建 admin / viewer 默认账号
 ```
 
 `db:setup` = `db:create`（创建 `sourcing_radar` 库）+ `db:migrate` + `db:seed`。
 重复执行 `npm run db:seed` 会重灌 events/entities/sources，但**保留 engagements**（人工录入不丢）。
+`db:seed-users` 对已存在的用户名跳过，不覆盖已改的密码。
 
 ## 开发
 
@@ -81,14 +96,18 @@ npm run start          # 只起后端，NestJS 托管前端静态资源 + SPA fa
 
 ## API
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | `/api/events` | 展会列表 |
-| GET | `/api/entities?type=&priority=&event=&angle=&keyword=&includeExcluded=` | 对象列表（默认排除 excluded；type/priority 逗号分隔多值） |
-| GET | `/api/entities/:id` | 对象详情 |
-| GET | `/api/sources` | 信息源 |
-| GET | `/api/engagements[?entityId=]` | 建联记录（全部 / 单个） |
-| PUT | `/api/engagements/:entityId` | upsert 建联状态/负责人/备注 |
+所有 `/api/*`（除登录外）均需 `Authorization: Bearer <token>`。
+
+| 方法 | 路径 | 说明 | 权限 |
+|---|---|---|---|
+| POST | `/api/auth/login` | 登录，返回 JWT | 公开 |
+| GET | `/api/auth/me` | 校验 token，返回当前用户 | 登录 |
+| GET | `/api/events` | 展会列表 | 登录 |
+| GET | `/api/entities?type=&priority=&event=&angle=&keyword=&includeExcluded=` | 对象列表（默认排除 excluded；type/priority 逗号分隔多值） | 登录 |
+| GET | `/api/entities/:id` | 对象详情 | 登录 |
+| GET | `/api/sources` | 信息源 | 登录 |
+| GET | `/api/engagements[?entityId=]` | 建联记录（全部 / 单个） | 登录 |
+| PUT | `/api/engagements/:entityId` | upsert 建联状态/负责人/备注（`updatedBy` 取自 token） | **仅 admin** |
 
 ## 与原飞书版的差异
 

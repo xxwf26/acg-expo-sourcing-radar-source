@@ -1,6 +1,12 @@
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { TYPE_OPTIONS, PRIORITY_OPTIONS, ANGLE_OPTIONS } from '@/lib/filterConfig';
 import type { IEvent } from '@/api/types';
@@ -11,7 +17,6 @@ export interface FilterState {
   priorities: string[];
   event: string; // 'all' 或 event id
   angle: string; // 'all' 或视角值
-  scoreMin: number;
 }
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -20,15 +25,14 @@ export const DEFAULT_FILTERS: FilterState = {
   priorities: [],
   event: 'all',
   angle: 'all',
-  scoreMin: 0,
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2.5 flex items-center gap-2">
         <span className="h-3 w-1 rounded-full bg-primary" />
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground">{title}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
       </div>
       {children}
     </div>
@@ -45,17 +49,24 @@ function CheckRow({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
       className={cn(
-        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+        'flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors',
         checked ? 'bg-accent text-accent-foreground' : 'hover:bg-secondary',
       )}
     >
       <Checkbox checked={checked} className="pointer-events-none" />
       <span>{label}</span>
-    </button>
+    </div>
   );
 }
 
@@ -73,9 +84,9 @@ function Pill({
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+        'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-primary bg-primary text-primary-foreground'
+          ? 'border-primary bg-accent font-bold text-accent-foreground'
           : 'border-border bg-card text-foreground hover:border-primary/50',
       )}
     >
@@ -111,21 +122,22 @@ export default function FilterPanelSection({
       </Section>
 
       <Section title="展会">
-        <div className="flex flex-wrap gap-1.5">
-          <Pill
-            label="全部展会"
-            active={filters.event === 'all'}
-            onClick={() => onChange({ ...filters, event: 'all' })}
-          />
-          {events.map((ev) => (
-            <Pill
-              key={ev.id}
-              label={`${ev.short}`}
-              active={filters.event === ev.id}
-              onClick={() => onChange({ ...filters, event: ev.id })}
-            />
-          ))}
-        </div>
+        <Select
+          value={filters.event}
+          onValueChange={(v) => onChange({ ...filters, event: v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部展会</SelectItem>
+            {events.map((ev) => (
+              <SelectItem key={ev.id} value={ev.id}>
+                {ev.short} · {ev.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Section>
 
       <Section title="对象类型">
@@ -155,31 +167,22 @@ export default function FilterPanelSection({
       </Section>
 
       <Section title="采购视角">
-        <div className="flex flex-wrap gap-1.5">
-          <Pill
-            label="全部机会"
-            active={filters.angle === 'all'}
-            onClick={() => onChange({ ...filters, angle: 'all' })}
-          />
-          {ANGLE_OPTIONS.map((opt) => (
-            <Pill
-              key={opt.value}
-              label={opt.value}
-              active={filters.angle === opt.value}
-              onClick={() => onChange({ ...filters, angle: opt.value })}
-            />
-          ))}
-        </div>
-      </Section>
-
-      <Section title={`匹配分下限：${filters.scoreMin}`}>
-        <Slider
-          value={[filters.scoreMin]}
-          min={0}
-          max={100}
-          step={1}
-          onValueChange={(v) => onChange({ ...filters, scoreMin: v[0] })}
-        />
+        <Select
+          value={filters.angle}
+          onValueChange={(v) => onChange({ ...filters, angle: v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部机会</SelectItem>
+            {ANGLE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Section>
 
       <Section title="数据口径">

@@ -17,7 +17,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { PRIORITY_STYLE, TYPE_STYLE, screenshotUrl, isBoothUncertain } from '@/lib/badgeStyles';
+import {
+  PRIORITY_STYLE,
+  TYPE_STYLE,
+  ENGAGEMENT_STATUS_STYLE,
+  screenshotUrl,
+  isBoothUncertain,
+} from '@/lib/badgeStyles';
 import { TYPE_LABELS, ENGAGEMENT_STATUS_OPTIONS } from '@/lib/filterConfig';
 import { useUpsertEngagement } from '@/hooks/useEngagement';
 import type { IEntity, IEngagement, IEvent } from '@/api/types';
@@ -37,12 +43,14 @@ export default function EntityDetailModal({
   entity,
   engagement,
   events,
+  canEdit = false,
   open,
   onOpenChange,
 }: {
   entity: IEntity | null;
   engagement?: IEngagement;
   events: IEvent[];
+  canEdit?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -215,53 +223,89 @@ export default function EntityDetailModal({
               </Field>
             )}
 
-            {/* 建联状态维护（核心写操作，存后端） */}
+            {/* 建联状态维护（核心写操作，存后端）。viewer 只读展示 */}
             <div className="rounded-lg border bg-secondary/40 p-4">
-              <p className="mb-3 text-sm font-semibold">建联维护</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="建联状态">
-                  <Select
-                    value={status}
-                    onValueChange={(v) => {
-                      setStatus(v);
-                      save({ status: v });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ENGAGEMENT_STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="负责人">
-                  <Input
-                    value={owner}
-                    onChange={(e) => setOwner(e.target.value)}
-                    onBlur={() => save({ owner })}
-                    placeholder="采购/业务姓名"
-                  />
-                </Field>
-              </div>
-              <div className="mt-3">
-                <Field label="备注">
-                  <Textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    onBlur={() => save({ note })}
-                    placeholder="可记录 booth 拜访结果、联系人、报价、风险、业务反馈"
-                    rows={3}
-                  />
-                </Field>
-              </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                状态即改即存，负责人/备注失焦保存。多人协作可见，刷新或换设备不丢失。
+              <p className="mb-3 text-sm font-semibold">
+                建联维护
+                {!canEdit && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    （只读用户不可编辑）
+                  </span>
+                )}
               </p>
+
+              {canEdit ? (
+                <>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field label="建联状态">
+                      <Select
+                        value={status}
+                        onValueChange={(v) => {
+                          setStatus(v);
+                          save({ status: v });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ENGAGEMENT_STATUS_OPTIONS.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="负责人">
+                      <Input
+                        value={owner}
+                        onChange={(e) => setOwner(e.target.value)}
+                        onBlur={() => save({ owner })}
+                        placeholder="采购/业务姓名"
+                      />
+                    </Field>
+                  </div>
+                  <div className="mt-3">
+                    <Field label="备注">
+                      <Textarea
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        onBlur={() => save({ note })}
+                        placeholder="可记录 booth 拜访结果、联系人、报价、风险、业务反馈"
+                        rows={3}
+                      />
+                    </Field>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    状态即改即存，负责人/备注失焦保存。多人协作可见，刷新或换设备不丢失。
+                  </p>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field label="建联状态">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'border',
+                          ENGAGEMENT_STATUS_STYLE[status] || ENGAGEMENT_STATUS_STYLE['待评估'],
+                        )}
+                      >
+                        {status}
+                      </Badge>
+                    </Field>
+                    <Field label="负责人">
+                      <p className="text-sm">{owner || '—'}</p>
+                    </Field>
+                  </div>
+                  <Field label="备注">
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {note || '—'}
+                    </p>
+                  </Field>
+                </div>
+              )}
             </div>
           </div>
         </ScrollArea>

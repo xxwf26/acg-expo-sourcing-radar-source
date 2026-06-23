@@ -3,7 +3,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Radar, LogOut } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 import { useEvents, useEntities, useSources } from '@/hooks/useRadarData';
 import { useEngagements } from '@/hooks/useEngagement';
 import FilterPanelSection, { DEFAULT_FILTERS, type FilterState } from './FilterPanelSection';
@@ -13,6 +14,8 @@ import VisualWallSection from './VisualWallSection';
 import EventCalendarSection from './EventCalendarSection';
 import SourcesSection from './SourcesSection';
 import WorkflowSection from './WorkflowSection';
+import EntitySidePanel from './EntitySidePanel';
+import RadarScope from './RadarScope';
 import type { IEntity, IEngagement } from '@/api/types';
 
 type ViewKey = 'entities' | 'visual' | 'events' | 'sources' | 'workflow';
@@ -27,14 +30,15 @@ const VIEW_TABS: { key: ViewKey; label: string }[] = [
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-xl border bg-card px-4 py-3 shadow-sm">
-      <div className="text-2xl font-bold text-primary">{value}</div>
-      <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
+    <div className="glass rounded-xl px-4 py-3 text-white">
+      <div className="text-2xl font-extrabold leading-none">{value}</div>
+      <div className="mt-1 text-xs text-white/70">{label}</div>
     </div>
   );
 }
 
 export default function RadarDashboardPage() {
+  const { user, isAdmin, logout } = useAuth();
   const eventsQuery = useEvents();
   const entitiesQuery = useEntities();
   const sourcesQuery = useSources();
@@ -82,7 +86,6 @@ export default function RadarDashboardPage() {
       .filter((e) => filters.types.length === 0 || filters.types.includes(e.type))
       .filter((e) => filters.priorities.length === 0 || filters.priorities.includes(e.priority))
       .filter((e) => filters.angle === 'all' || (e.angles || []).includes(filters.angle))
-      .filter((e) => e.score >= filters.scoreMin)
       .sort((a, b) => b.score - a.score);
   }, [visibleEntities, filters]);
 
@@ -100,57 +103,98 @@ export default function RadarDashboardPage() {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[1400px] gap-0">
+    <div className="app-canvas flex min-h-screen w-full gap-0">
       {/* PC 侧边栏 */}
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-auto border-r bg-sidebar p-4 lg:block">
-        <div className="mb-5">
-          <h1 className="text-base font-bold leading-tight">采购寻源建联雷达</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">游戏 / ACG / 美术展会机会池</p>
+      <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 flex-col overflow-auto border-r border-border/70 bg-sidebar/80 p-5 backdrop-blur lg:flex">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-teal-600 shadow-md shadow-primary/30">
+            <Radar className="size-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-[15px] font-bold leading-tight">采购寻源建联雷达</h1>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">游戏 / ACG / 美术展会机会池</p>
+          </div>
         </div>
-        {filterPanel}
+        <div className="flex-1">{filterPanel}</div>
+
+        {/* 当前用户 + 登出 */}
+        <div className="mt-4 flex items-center justify-between gap-2 border-t pt-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{user?.displayName || user?.username}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {isAdmin ? '管理员 · 可维护建联' : '只读用户 · 仅浏览'}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={logout} className="shrink-0">
+            <LogOut className="size-4" />
+            登出
+          </Button>
+        </div>
       </aside>
 
       {/* 主区 */}
-      <main className="min-w-0 flex-1 p-4 sm:p-6">
-        {/* 顶部：标题 + 移动端筛选入口 + 统计 */}
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold">从“参加展会”升级成“全组可复用的机会雷达”</h2>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              把展会里的艺术家、大厂嘉宾、周边供应商、零售渠道和社区节点沉淀给整个组。业务方提前筛选想建联的人，采购按优先级安排现场拜访。
-            </p>
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        {/* 深色雷达 Hero 横幅 */}
+        <section className="radar-hero mb-6 rounded-2xl p-6 shadow-lg sm:p-8">
+          <div className="relative z-10 flex items-start justify-between gap-6">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-medium text-teal-100 backdrop-blur">
+                <span className="size-1.5 animate-pulse rounded-full bg-teal-300" />
+                实时机会雷达 · 营销采购窗口
+              </div>
+              <h2 className="text-2xl font-extrabold leading-tight text-white sm:text-[28px]">
+                从“参加展会”升级成
+                <br className="hidden sm:block" />
+                “全组可复用的机会雷达”
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-teal-50/80">
+                把展会里的艺术家、大厂嘉宾、周边供应商、零售渠道和社区节点沉淀给整个组。业务方提前筛选想建联的人，采购按优先级安排现场拜访。
+              </p>
+            </div>
+            <div className="hidden h-36 w-36 shrink-0 md:block lg:h-44 lg:w-44">
+              <RadarScope />
+            </div>
+            {/* 移动端操作 */}
+            <div className="flex shrink-0 items-center gap-2 lg:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                    <SlidersHorizontal className="size-4" />
+                    筛选
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="max-h-[85vh] overflow-auto">
+                  <SheetTitle className="mb-4">筛选条件</SheetTitle>
+                  {filterPanel}
+                </SheetContent>
+              </Sheet>
+              <Button variant="outline" size="sm" onClick={logout} className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <LogOut className="size-4" />
+              </Button>
+            </div>
           </div>
-          <div className="lg:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <SlidersHorizontal className="size-4" />
-                  筛选
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[85vh] overflow-auto">
-                <SheetTitle className="mb-4">筛选条件</SheetTitle>
-                {filterPanel}
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
 
-        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard value={events.length} label="重点展会" />
-          <StatCard value={visibleEntities.length} label="候选对象" />
-          <StatCard
-            value={visibleEntities.filter((e) => e.priority === 'S' || e.priority === 'A').length}
-            label="S/A 优先级"
-          />
-          <StatCard value={sources.length} label="待监控来源" />
-        </div>
+          {/* 统计：玻璃卡 */}
+          <div className="relative z-10 mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard value={events.length} label="重点展会" />
+            <StatCard value={visibleEntities.length} label="候选对象" />
+            <StatCard
+              value={visibleEntities.filter((e) => e.priority === 'S' || e.priority === 'A').length}
+              label="S/A 优先级"
+            />
+            <StatCard value={sources.length} label="待监控来源" />
+          </div>
+        </section>
 
         {/* 视图 Tab */}
-        <Tabs value={view} onValueChange={(v) => setView(v as ViewKey)} className="mb-4">
-          <TabsList>
+        <Tabs value={view} onValueChange={(v) => setView(v as ViewKey)} className="mb-5">
+          <TabsList className="h-11 gap-1 rounded-xl border bg-card/70 p-1.5 shadow-sm backdrop-blur">
             {VIEW_TABS.map((t) => (
-              <TabsTrigger key={t.key} value={t.key}>
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className="rounded-lg px-4 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-teal-600 data-[state=active]:font-semibold data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-primary/25"
+              >
                 {t.label}
               </TabsTrigger>
             ))}
@@ -159,9 +203,9 @@ export default function RadarDashboardPage() {
 
         {/* 内容 */}
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-52 rounded-xl" />
+              <Skeleton key={i} className="h-64 rounded-xl" />
             ))}
           </div>
         ) : isError ? (
@@ -171,16 +215,19 @@ export default function RadarDashboardPage() {
         ) : (
           <>
             {view === 'entities' && (
-              <div className="text-xs text-muted-foreground">
-                <p className="mb-3">
-                  共 {filtered.length} 个匹配对象（按匹配分排序）。点击卡片查看完整信息并维护建联状态。
-                </p>
-                <EntityGridSection
-                  entities={filtered}
-                  engagementMap={engagementMap}
-                  events={events}
-                  onOpenEntity={openEntity}
-                />
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    共 {filtered.length} 个匹配对象（按匹配分排序）。点击卡片查看完整信息并维护建联状态。
+                  </p>
+                  <EntityGridSection
+                    entities={filtered}
+                    engagementMap={engagementMap}
+                    events={events}
+                    onOpenEntity={openEntity}
+                  />
+                </div>
+                <EntitySidePanel />
               </div>
             )}
             {view === 'visual' && <VisualWallSection entities={filtered} />}
@@ -195,6 +242,7 @@ export default function RadarDashboardPage() {
         entity={activeEntity}
         engagement={activeEntity ? engagementMap.get(activeEntity.id) : undefined}
         events={events}
+        canEdit={isAdmin}
         open={modalOpen}
         onOpenChange={setModalOpen}
       />

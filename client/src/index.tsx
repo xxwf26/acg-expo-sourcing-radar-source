@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { createPortal } from 'react-dom';
 import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/lib/auth';
 import AppRoutes from './app';
 import './index.css';
 
@@ -18,8 +19,10 @@ const MainApp = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-        <AppRoutes />
-        {createPortal(<Toaster />, document.body)}
+        <AuthProvider>
+          <AppRoutes />
+          {createPortal(<Toaster />, document.body)}
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </BrowserRouter>

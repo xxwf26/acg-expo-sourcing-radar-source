@@ -15,6 +15,13 @@
       "when": 1782186916026,
       "tag": "0001_naive_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1782201347976,
+      "tag": "0002_fast_lady_deathstrike",
+      "breakpoints": true
     }
   ]
 }

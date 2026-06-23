@@ -24,6 +24,41 @@ export const ENGAGEMENT_STATUS_STYLE: Record<string, string> = {
   搁置: 'bg-slate-100 text-slate-400 border-slate-200',
 };
 
+// 优先级卡片渐变 + 左边框色（移植原 entity-card.priority-* 配色）
+export const PRIORITY_CARD: Record<Priority, { borderLeftColor: string; background: string }> = {
+  S: {
+    borderLeftColor: '#c94156',
+    background: 'linear-gradient(160deg, #fff3f6 0%, #ffffff 52%, #ffe7ec 100%)',
+  },
+  A: {
+    borderLeftColor: '#c78318',
+    background: 'linear-gradient(160deg, #fff8e8 0%, #ffffff 54%, #fdf0cc 100%)',
+  },
+  B: {
+    borderLeftColor: '#18867d',
+    background: 'linear-gradient(160deg, #edf8f7 0%, #ffffff 54%, #e0f2ef 100%)',
+  },
+};
+
+// 展会徽章配色（移植原 .event-badge.<short> strong 背景色）
+const EVENT_BADGE_COLOR: Record<string, string> = {
+  ax: '#e34d5f',
+  gc: '#2257c8',
+  bw: '#00a1d6',
+  cj: '#d6422b',
+  tgs: '#222f3e',
+  wf: '#7f3fbf',
+  c106: '#2c8f5b',
+  aj: '#f08a24',
+  afa: '#bd315d',
+  gaf: '#6b7280',
+};
+
+export function eventBadgeColor(short: string): string {
+  const key = short.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return EVENT_BADGE_COLOR[key] || '#6b7280';
+}
+
 // WordPress mShots 网页截图（原应用同款视觉预览）
 export function screenshotUrl(url: string): string {
   return `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=760`;

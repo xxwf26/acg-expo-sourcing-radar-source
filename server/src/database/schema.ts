@@ -105,3 +105,21 @@ export const engagements = mysqlTable(
     idxStatus: index('idx_engagement_status').on(table.status),
   }),
 );
+
+/** 系统用户（登录鉴权用）。密码存 bcrypt hash，不存明文 */
+export const users = mysqlTable('users', {
+  id: varchar('id', { length: 36 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  username: varchar('username', { length: 64 }).notNull().unique(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  // admin | viewer
+  role: varchar('role', { length: 16 }).default('viewer').notNull(),
+  displayName: varchar('display_name', { length: 128 }),
+  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp('updated_at')
+    .default(sql`CURRENT_TIMESTAMP`)
+    .onUpdateNow()
+    .notNull(),
+});
