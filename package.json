@@ -1,0 +1,22 @@
+{
+  "name": "acg-sourcing-radar-standalone",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ACG展会采购寻源雷达 - 独立前后端系统（脱离飞书）",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "db:create": "node server/scripts/create-db.mjs",
+    "db:generate": "cd server && npm run db:generate",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:seed": "cd server && npm run db:seed",
+    "db:setup": "npm run db:create && npm run db:migrate && npm run db:seed",
+    "dev:server": "cd server && npm run start:dev",
+    "dev:client": "cd client && npm run dev",
+    "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "build": "cd client && npm run build && cd ../server && npm run build",
+    "start": "cd server && npm run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

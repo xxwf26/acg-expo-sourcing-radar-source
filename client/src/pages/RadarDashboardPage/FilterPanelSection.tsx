@@ -1,0 +1,192 @@
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
+import { TYPE_OPTIONS, PRIORITY_OPTIONS, ANGLE_OPTIONS } from '@/lib/filterConfig';
+import type { IEvent } from '@/api/types';
+
+export interface FilterState {
+  search: string;
+  types: string[];
+  priorities: string[];
+  event: string; // 'all' 或 event id
+  angle: string; // 'all' 或视角值
+  scoreMin: number;
+}
+
+export const DEFAULT_FILTERS: FilterState = {
+  search: '',
+  types: [],
+  priorities: [],
+  event: 'all',
+  angle: 'all',
+  scoreMin: 0,
+};
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-5">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="h-3 w-1 rounded-full bg-primary" />
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground">{title}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function CheckRow({
+  label,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+        checked ? 'bg-accent text-accent-foreground' : 'hover:bg-secondary',
+      )}
+    >
+      <Checkbox checked={checked} className="pointer-events-none" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function Pill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+        active
+          ? 'border-primary bg-primary text-primary-foreground'
+          : 'border-border bg-card text-foreground hover:border-primary/50',
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+export default function FilterPanelSection({
+  filters,
+  onChange,
+  events,
+}: {
+  filters: FilterState;
+  onChange: (next: FilterState) => void;
+  events: IEvent[];
+}) {
+  const toggleArr = (key: 'types' | 'priorities', value: string) => {
+    const cur = filters[key];
+    const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
+    onChange({ ...filters, [key]: next });
+  };
+
+  return (
+    <div>
+      <Section title="搜索">
+        <Input
+          value={filters.search}
+          onChange={(e) => onChange({ ...filters, search: e.target.value })}
+          placeholder="搜展会、艺术家、供应商、标签"
+          type="search"
+        />
+      </Section>
+
+      <Section title="展会">
+        <div className="flex flex-wrap gap-1.5">
+          <Pill
+            label="全部展会"
+            active={filters.event === 'all'}
+            onClick={() => onChange({ ...filters, event: 'all' })}
+          />
+          {events.map((ev) => (
+            <Pill
+              key={ev.id}
+              label={`${ev.short}`}
+              active={filters.event === ev.id}
+              onClick={() => onChange({ ...filters, event: ev.id })}
+            />
+          ))}
+        </div>
+      </Section>
+
+      <Section title="对象类型">
+        <div className="space-y-0.5">
+          {TYPE_OPTIONS.map((opt) => (
+            <CheckRow
+              key={opt.value}
+              label={opt.label}
+              checked={filters.types.includes(opt.value)}
+              onToggle={() => toggleArr('types', opt.value)}
+            />
+          ))}
+        </div>
+      </Section>
+
+      <Section title="优先级">
+        <div className="flex gap-1.5">
+          {PRIORITY_OPTIONS.map((opt) => (
+            <Pill
+              key={opt.value}
+              label={opt.label}
+              active={filters.priorities.includes(opt.value)}
+              onClick={() => toggleArr('priorities', opt.value)}
+            />
+          ))}
+        </div>
+      </Section>
+
+      <Section title="采购视角">
+        <div className="flex flex-wrap gap-1.5">
+          <Pill
+            label="全部机会"
+            active={filters.angle === 'all'}
+            onClick={() => onChange({ ...filters, angle: 'all' })}
+          />
+          {ANGLE_OPTIONS.map((opt) => (
+            <Pill
+              key={opt.value}
+              label={opt.value}
+              active={filters.angle === opt.value}
+              onClick={() => onChange({ ...filters, angle: opt.value })}
+            />
+          ))}
+        </div>
+      </Section>
+
+      <Section title={`匹配分下限：${filters.scoreMin}`}>
+        <Slider
+          value={[filters.scoreMin]}
+          min={0}
+          max={100}
+          step={1}
+          onValueChange={(v) => onChange({ ...filters, scoreMin: v[0] })}
+        />
+      </Section>
+
+      <Section title="数据口径">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          名单类信息以官方页面、展商官网、社媒主页为主；业务推荐由采购匹配度、建联可行性、品牌势能综合评分。
+        </p>
+      </Section>
+    </div>
+  );
+}

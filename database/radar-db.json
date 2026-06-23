@@ -1,0 +1,2238 @@
+{
+  "metadata": {
+    "name": "ACG????????",
+    "publishedUrl": "https://papergames.aiforce.cloud/app/app_4kdkyzpju9nac",
+    "exportedAt": "2026-06-22T10:49:31.645Z",
+    "source": "outputs/deploy/index.html",
+    "format": "static-radar-json-v1",
+    "notes": "????????????? JSON ????? JavaScript ?????????????/?? Base ?????"
+  },
+  "counts": {
+    "events": 10,
+    "entities": 36,
+    "visibleEntities": 18,
+    "sources": 4,
+    "excludedEntities": 18
+  },
+  "events": [
+    {
+      "id": "ax2026",
+      "name": "Anime Expo 2026",
+      "short": "AX",
+      "date": "2026-07-02 至 2026-07-05",
+      "month": "7月",
+      "city": "美国 洛杉矶",
+      "region": "北美",
+      "venue": "Los Angeles Convention Center",
+      "status": "名单更新中",
+      "tags": [
+        "日漫",
+        "ACG",
+        "Artist Alley",
+        "授权周边",
+        "女性向"
+      ],
+      "note": "叠纸 2026 年 7 月线下重点场景；适合搜集北美零售渠道、ACG 周边供应商、女性向社群与高势能艺术家。",
+      "links": [
+        [
+          "官网",
+          "https://www.anime-expo.org/"
+        ],
+        [
+          "Exhibitors",
+          "https://www.anime-expo.org/ax2026exhibitlist/"
+        ],
+        [
+          "Artist Alley",
+          "https://www.anime-expo.org/ax2026aalist/"
+        ],
+        [
+          "Talent",
+          "https://www.anime-expo.org/ax/talent/"
+        ],
+        [
+          "Schedule",
+          "https://www.anime-expo.org/ax/schedule-2026/"
+        ]
+      ]
+    },
+    {
+      "id": "gamescom2026",
+      "name": "gamescom 2026",
+      "short": "GC",
+      "date": "2026-08-26 至 2026-08-30",
+      "month": "8月",
+      "city": "德国 科隆",
+      "region": "欧洲",
+      "venue": "Koelnmesse",
+      "status": "展商持续发布",
+      "tags": [
+        "游戏",
+        "发行",
+        "线下活动",
+        "硬件",
+        "B2B"
+      ],
+      "note": "叠纸 2026 年 8 月重点出差场景；适合看欧洲线下活动供应商、发行平台、内容宣发和品牌联名。",
+      "links": [
+        [
+          "官网",
+          "https://www.gamescom.global/en"
+        ],
+        [
+          "Exhibitors",
+          "https://www.gamescom.global/en/exhibitors-and-products"
+        ],
+        [
+          "Business Area",
+          "https://www.gamescom.global/en/business"
+        ]
+      ]
+    },
+    {
+      "id": "bw2026",
+      "name": "BilibiliWorld 2026",
+      "short": "BW",
+      "date": "2026-07-10 至 2026-07-12",
+      "month": "7月",
+      "city": "中国 上海",
+      "region": "中国",
+      "venue": "国家会展中心",
+      "status": "国内重点展",
+      "tags": [
+        "B站",
+        "二创",
+        "UP主",
+        "IP展台",
+        "线下活动"
+      ],
+      "note": "适合关注国内二创作者、UP主、舞台活动供应商、展台互动玩法和年轻用户偏好。",
+      "links": [
+        [
+          "官网",
+          "https://bw.bilibili.com/"
+        ],
+        [
+          "B站活动页",
+          "https://www.bilibili.com/blackboard/activity-bw2026.html"
+        ]
+      ]
+    },
+    {
+      "id": "cj2026",
+      "name": "ChinaJoy 2026",
+      "short": "CJ",
+      "date": "2026-07-31 至 2026-08-03",
+      "month": "7月",
+      "city": "中国 上海",
+      "region": "中国",
+      "venue": "上海新国际博览中心",
+      "status": "国内重点展",
+      "tags": [
+        "游戏",
+        "展台",
+        "硬件",
+        "供应商",
+        "B2B"
+      ],
+      "note": "适合集中扫国内展台搭建、互动装置、视频制作、舞台、coser/KOL 和线下执行供应商。",
+      "links": [
+        [
+          "官网",
+          "https://www.chinajoy.net/"
+        ],
+        [
+          "展商服务",
+          "https://www.chinajoy.net/exhibitor-service/"
+        ]
+      ]
+    },
+    {
+      "id": "tgs2026",
+      "name": "Tokyo Game Show 2026",
+      "short": "TGS",
+      "date": "2026-09-17 至 2026-09-21",
+      "month": "9月",
+      "city": "日本 千叶",
+      "region": "日本",
+      "venue": "Makuhari Messe",
+      "status": "重点监控",
+      "tags": [
+        "游戏",
+        "日本市场",
+        "B2B",
+        "媒体",
+        "IP"
+      ],
+      "note": "适合日本市场商务、游戏媒体、线下活动与日方 IP 合作观察。",
+      "links": [
+        [
+          "官网",
+          "https://tgs.cesa.or.jp/en"
+        ],
+        [
+          "CESA",
+          "https://www.cesa.or.jp/en/"
+        ]
+      ]
+    },
+    {
+      "id": "wf2026s",
+      "name": "Wonder Festival 2026 Summer",
+      "short": "WF",
+      "date": "2026-07-26",
+      "month": "7月",
+      "city": "日本 千叶",
+      "region": "日本",
+      "venue": "Makuhari Messe",
+      "status": "手办/模型重点",
+      "tags": [
+        "手办",
+        "模型",
+        "原型师",
+        "雕像",
+        "周边"
+      ],
+      "note": "适合寻找手办原型、GK、模型厂、雕像/收藏品供应链。",
+      "links": [
+        [
+          "官网",
+          "https://wonfes.jp/"
+        ],
+        [
+          "English",
+          "https://wonfes.jp/specialsite/"
+        ]
+      ]
+    },
+    {
+      "id": "comiket106",
+      "name": "Comic Market 106",
+      "short": "C106",
+      "date": "2026-08-15 至 2026-08-16",
+      "month": "8月",
+      "city": "日本 东京",
+      "region": "日本",
+      "venue": "Tokyo Big Sight",
+      "status": "二创/同人重点",
+      "tags": [
+        "同人",
+        "画师",
+        "本子",
+        "社群",
+        "二创"
+      ],
+      "note": "适合观察日本创作者生态、女性向/同人趋势，但商务建联需要注意个人创作者边界和授权。",
+      "links": [
+        [
+          "官网",
+          "https://www.comiket.co.jp/"
+        ],
+        [
+          "International",
+          "https://www.comiket.co.jp/info-a/TAFO/C.html"
+        ]
+      ]
+    },
+    {
+      "id": "animejapan2027",
+      "name": "AnimeJapan 2027",
+      "short": "AJ",
+      "date": "公众日 2027-03-27 至 2027-03-28 / 商务日 2027-03-29 至 2027-03-30",
+      "month": "3月",
+      "city": "日本 大阪",
+      "region": "日本",
+      "venue": "INTEX Osaka",
+      "status": "下届预告",
+      "tags": [
+        "动画",
+        "IP",
+        "制作委员会",
+        "舞台",
+        "日方商务"
+      ],
+      "note": "更适合 IP、动画制作、发行与日方商务线索，不一定是普通采购供应商。",
+      "links": [
+        [
+          "官网",
+          "https://www.anime-japan.jp/en/"
+        ]
+      ]
+    },
+    {
+      "id": "afa2026",
+      "name": "Anime Festival Asia Singapore 2026",
+      "short": "AFA",
+      "date": "2026 下半年待官宣",
+      "month": "待定",
+      "city": "新加坡",
+      "region": "东南亚",
+      "venue": "待官宣",
+      "status": "待官宣",
+      "tags": [
+        "东南亚",
+        "ACG",
+        "舞台",
+        "艺人",
+        "IP"
+      ],
+      "note": "适合东南亚用户、ACG 演出、舞台活动和区域渠道监控。",
+      "links": [
+        [
+          "官网",
+          "https://animefestival.asia/"
+        ]
+      ]
+    },
+    {
+      "id": "gafArchive",
+      "name": "GAF 北京插画艺术节",
+      "short": "GAF",
+      "date": "2026-01-01 至 2026-01-03",
+      "month": "1月",
+      "city": "中国 北京",
+      "region": "中国",
+      "venue": "北京展览馆",
+      "status": "2026 已结束 / 下届待监控",
+      "tags": [
+        "插画",
+        "艺术家",
+        "出版",
+        "文创",
+        "独立品牌"
+      ],
+      "note": "适合做国内插画艺术家、出版物、文创小品牌建联；当前应转入下届信息源监控。",
+      "links": [
+        [
+          "官网",
+          "https://www.gaf-festival.com/"
+        ]
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "id": "animon-life",
+      "name": "Animon Life",
+      "type": "supplier",
+      "priority": "S",
+      "score": 94,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX WH-1128",
+      "tags": [
+        "周边",
+        "北美渠道",
+        "Love and Deepspace",
+        "HoYoverse",
+        "现场"
+      ],
+      "angles": [
+        "周边",
+        "现场",
+        "女性向"
+      ],
+      "reason": "北美 ACG 手游主题零售商，客群与 LaDS、HoYoverse、Kuro 等高度重合。适合聊授权周边、北美仓配、快闪、现场活动执行。",
+      "cases": [
+        "Love and Deepspace 周边客群",
+        "HoYoverse / Kuro / Arknights 等手游零售场景"
+      ],
+      "visuals": [
+        {
+          "title": "官网商品页预览",
+          "caption": "看选品与陈列气质",
+          "url": "https://www.animonlifeofficial.com/"
+        },
+        {
+          "title": "社媒入口预览",
+          "caption": "看活动与粉丝触点",
+          "url": "https://linktr.ee/animon_life"
+        }
+      ],
+      "links": [
+        [
+          "官网",
+          "https://www.animonlifeofficial.com/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/animon_life"
+        ],
+        [
+          "YouTube",
+          "https://www.youtube.com/@animonlife.official"
+        ]
+      ]
+    },
+    {
+      "id": "acg-go",
+      "name": "ACG Go Anime",
+      "type": "supplier",
+      "priority": "S",
+      "score": 90,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX WH-3056",
+      "tags": [
+        "周边",
+        "扭蛋",
+        "一番赏",
+        "女性向",
+        "国创"
+      ],
+      "angles": [
+        "周边",
+        "女性向"
+      ],
+      "reason": "官方展商信息显示其覆盖 Genshin、Star Rail、Tears of Themis、国创 IP 和抽赏玩法，适合观察正版周边零售与女性向客群。",
+      "cases": [
+        "Tears of Themis / HoYoverse 类女性向客群",
+        "扭蛋、一番赏、正版周边零售"
+      ],
+      "visuals": [
+        {
+          "title": "官网商品/品牌预览",
+          "caption": "看渠道与商品形态",
+          "url": "https://www.acg-go.com/"
+        },
+        {
+          "title": "社媒聚合入口",
+          "caption": "看最新活动触点",
+          "url": "https://linktr.ee/acggoanime"
+        }
+      ],
+      "links": [
+        [
+          "官网",
+          "https://www.acg-go.com/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/acggoanime"
+        ]
+      ]
+    },
+    {
+      "id": "aitai-kuji",
+      "name": "Aitai Kuji",
+      "type": "supplier",
+      "priority": "A",
+      "score": 84,
+      "events": [
+        "ax2026"
+      ],
+      "region": "日本/北美",
+      "booth": "AX WH-370",
+      "tags": [
+        "Kuji",
+        "日本正版",
+        "限定品",
+        "预售",
+        "周边"
+      ],
+      "angles": [
+        "周边"
+      ],
+      "reason": "做日本正版商品、Kuji、独家周边和预售，适合聊限定品、海外预售、抽赏商品机制和日方出口链路。",
+      "cases": [
+        "Kuji / 抽赏商品",
+        "日方限定周边海外预售"
+      ],
+      "visuals": [
+        {
+          "title": "Aitai Kuji 商店预览",
+          "caption": "看抽赏与限定品呈现",
+          "url": "https://www.aitaikuji.com/"
+        }
+      ],
+      "links": [
+        [
+          "官网",
+          "https://www.aitaikuji.com/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/aitaikuji"
+        ]
+      ]
+    },
+    {
+      "id": "amiami",
+      "name": "AmiAmi",
+      "type": "platform",
+      "priority": "A",
+      "score": 83,
+      "events": [
+        "ax2026"
+      ],
+      "region": "日本/全球",
+      "booth": "AX SH-314",
+      "tags": [
+        "手办",
+        "周边",
+        "线上零售",
+        "预售"
+      ],
+      "angles": [
+        "周边"
+      ],
+      "reason": "成熟的日本手办和角色周边渠道。适合作为高客单商品、预售机制和样品展示方式参考。",
+      "links": [
+        [
+          "官网",
+          "https://www.amiami.com/"
+        ],
+        [
+          "Instagram",
+          "https://www.instagram.com/amiami_global/"
+        ],
+        [
+          "实体店",
+          "https://realstore.amiami.jp/en/info/open_250606.html"
+        ]
+      ]
+    },
+    {
+      "id": "acro-tokyo",
+      "name": "ACRO TOKYO",
+      "type": "supplier",
+      "priority": "A",
+      "score": 88,
+      "events": [
+        "ax2026"
+      ],
+      "region": "日本/全球",
+      "booth": "AX WH-1266 / WH-1366",
+      "tags": [
+        "服饰",
+        "原宿",
+        "潮流",
+        "Nikki",
+        "联名"
+      ],
+      "angles": [
+        "服饰",
+        "现场"
+      ],
+      "reason": "旗下 REFLEM、TRAVAS TOKYO 等品牌有强烈 J-fashion 与原宿气质，和 Infinity Nikki 的服饰、潮流联名方向天然接近。",
+      "cases": [
+        "REFLEM / TRAVAS TOKYO / 原宿潮流",
+        "适合 Nikki 服饰联名或秀场灵感"
+      ],
+      "visuals": [
+        {
+          "title": "Global Shop 预览",
+          "caption": "看服饰调性",
+          "url": "https://acrotokyo-global.com/"
+        },
+        {
+          "title": "AX Talent 页",
+          "caption": "看展会官方介绍",
+          "url": "https://www.anime-expo.org/talent/acro-tokyo/"
+        }
+      ],
+      "links": [
+        [
+          "AX Profile",
+          "https://www.anime-expo.org/talent/acro-tokyo/"
+        ],
+        [
+          "Global",
+          "https://acrotokyo-global.com/"
+        ],
+        [
+          "日本官网",
+          "https://www.acrotokyo.com/"
+        ]
+      ]
+    },
+    {
+      "id": "yoshitaka-amano",
+      "name": "Yoshitaka Amano 天野喜孝",
+      "type": "master",
+      "priority": "S",
+      "score": 98,
+      "events": [
+        "ax2026"
+      ],
+      "region": "日本/全球",
+      "booth": "AX Guest",
+      "tags": [
+        "高端美术",
+        "Final Fantasy",
+        "收藏视觉",
+        "大师"
+      ],
+      "angles": [
+        "美术"
+      ],
+      "reason": "顶级艺术联名对象，适合收藏版视觉、周年主视觉、艺术展级合作。建联难度高，但品牌势能最高。",
+      "cases": [
+        "Final Fantasy 系列视觉概念",
+        "Vampire Hunter D",
+        "Guin Saga",
+        "收藏级艺术展/画廊合作"
+      ],
+      "visuals": [
+        {
+          "title": "官方站作品入口",
+          "caption": "看艺术家官方叙事",
+          "url": "https://www.yoshitakaamanoinc.com/"
+        },
+        {
+          "title": "A Studio Archive",
+          "caption": "看作品档案与画廊呈现",
+          "url": "https://www.astudioarchive.com/"
+        }
+      ],
+      "links": [
+        [
+          "AX Profile",
+          "https://www.anime-expo.org/talent/yoshitaka-amano-2/"
+        ],
+        [
+          "官方站",
+          "https://www.yoshitakaamanoinc.com/"
+        ],
+        [
+          "A Studio Archive",
+          "https://www.astudioarchive.com/"
+        ],
+        [
+          "Instagram",
+          "https://www.instagram.com/yoshitaka_amano/"
+        ]
+      ]
+    },
+    {
+      "id": "acky-bright",
+      "name": "Acky Bright",
+      "type": "master",
+      "priority": "S",
+      "score": 92,
+      "events": [
+        "ax2026"
+      ],
+      "region": "日本/全球",
+      "booth": "AX Guest",
+      "tags": [
+        "Live drawing",
+        "潮流视觉",
+        "海报",
+        "现场"
+      ],
+      "angles": [
+        "美术",
+        "现场"
+      ],
+      "reason": "擅长现场创作和强视觉冲击的潮流表达，适合 AX 现场活动墙、限定海报、签绘、社媒传播素材。",
+      "cases": [
+        "DC / Marvel / Netflix / Red Bull / Meta 合作经历",
+        "Live drawing / 现场创作 / 黑白线稿视觉"
+      ],
+      "visuals": [
+        {
+          "title": "官方作品集预览",
+          "caption": "看线稿与现场创作风格",
+          "url": "https://www.acky-bright.com/"
+        },
+        {
+          "title": "Instagram 作品入口",
+          "caption": "看近期活跃作品",
+          "url": "https://www.instagram.com/acky_bright/"
+        }
+      ],
+      "links": [
+        [
+          "AX Profile",
+          "https://www.anime-expo.org/talent/acky-bright-3/"
+        ],
+        [
+          "官网",
+          "https://www.acky-bright.com/"
+        ],
+        [
+          "Instagram",
+          "https://www.instagram.com/acky_bright/"
+        ],
+        [
+          "X",
+          "https://x.com/aki001208"
+        ]
+      ]
+    },
+    {
+      "id": "kamome-shirahama",
+      "name": "Kamome Shirahama 白浜鴎",
+      "type": "master",
+      "priority": "A",
+      "score": 89,
+      "events": [
+        "ax2026"
+      ],
+      "region": "日本/全球",
+      "booth": "AX Guest",
+      "tags": [
+        "幻想",
+        "服饰",
+        "漫画",
+        "女性向",
+        "艺术感"
+      ],
+      "angles": [
+        "女性向",
+        "服饰",
+        "美术"
+      ],
+      "reason": "幻想、服饰、工艺感强，适合高质感艺术合作、服装主题内容、收藏视觉。商务建议经出版或官方渠道。",
+      "cases": [
+        "Witch Hat Atelier",
+        "Marvel / DC 封面相关作品",
+        "幻想服饰与工艺感漫画视觉"
+      ],
+      "visuals": [
+        {
+          "title": "Witch Hat Atelier 作品页",
+          "caption": "看幻想与服饰美术调性",
+          "url": "https://kodansha.us/series/witch-hat-atelier/"
+        },
+        {
+          "title": "Instagram 作品入口",
+          "caption": "看个人作品发布",
+          "url": "https://www.instagram.com/mome_kamo/"
+        }
+      ],
+      "links": [
+        [
+          "AX Profile",
+          "https://www.anime-expo.org/talent/kamome-shirahama/"
+        ],
+        [
+          "X",
+          "https://twitter.com/shirahamakamome"
+        ],
+        [
+          "Instagram",
+          "https://www.instagram.com/mome_kamo/"
+        ],
+        [
+          "Bluesky",
+          "https://bsky.app/profile/shirahamakamome.bsky.social"
+        ]
+      ]
+    },
+    {
+      "id": "1o8k",
+      "name": "1O8K",
+      "type": "creatorKol",
+      "priority": "A",
+      "score": 87,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX Artist Alley P18",
+      "followerScale": "IG 历史快照约 326K｜Bluesky 约 3.1K",
+      "followerTier": "L3：30万+ 画师/KOL",
+      "followerNote": "适合按“画师影响力 + 角色向粉丝传播”评估，不按大师级艺术家口径评估。",
+      "tags": [
+        "ikemen",
+        "catboys",
+        "fashion",
+        "女性向",
+        "LaDS"
+      ],
+      "angles": [
+        "女性向",
+        "服饰",
+        "美术"
+      ],
+      "reason": "Artist Alley 里非常贴 LaDS 女性向审美的候选。适合小规模授权插画、活动视觉、角色向周边，但需确认原创/授权边界。",
+      "cases": [
+        "ikemen / catboys / fashion 角色向插画",
+        "角色周边、print、standee、贴纸等 Artist Alley 商品"
+      ],
+      "visuals": [
+        {
+          "title": "1O8K 官方作品页",
+          "caption": "看角色与服饰气质",
+          "url": "https://www.1o8-k.com/"
+        },
+        {
+          "title": "Big Cartel 商店",
+          "caption": "看商品化能力",
+          "url": "https://1o8k.bigcartel.com/"
+        }
+      ],
+      "links": [
+        [
+          "官网",
+          "https://www.1o8-k.com/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/1O8K"
+        ],
+        [
+          "Shop",
+          "https://1o8k.bigcartel.com/"
+        ],
+        [
+          "Instagram",
+          "https://www.instagram.com/1o8k_"
+        ],
+        [
+          "X",
+          "https://twitter.com/1o8k_"
+        ]
+      ]
+    },
+    {
+      "id": "3liemarie",
+      "name": "3liemarie",
+      "type": "creatorKol",
+      "priority": "A",
+      "score": 84,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX Artist Alley L19",
+      "followerScale": "TikTok 公开快照约 11.2K｜IG 待复核",
+      "followerTier": "L1：1万+ 独立画师",
+      "followerNote": "更偏风格匹配和商品化潜力，传播量级不是第一优先。",
+      "tags": [
+        "时尚",
+        "shoujo",
+        "Art Nouveau",
+        "角色设计",
+        "Nikki"
+      ],
+      "angles": [
+        "女性向",
+        "服饰",
+        "美术"
+      ],
+      "reason": "有时尚行业经验，视觉调性适合 Nikki 类服饰灵感、女性向视觉、小型文创联名。",
+      "cases": [
+        "shoujo / Art Nouveau / fashion-inspired character design",
+        "原创插画、印刷品、文创小物"
+      ],
+      "visuals": [
+        {
+          "title": "官网/Shop 预览",
+          "caption": "看时尚与少女漫画调性",
+          "url": "https://www.rttnpnk.net/"
+        },
+        {
+          "title": "Carrd Portfolio",
+          "caption": "看作品集入口",
+          "url": "https://3liemarie.carrd.co/"
+        }
+      ],
+      "links": [
+        [
+          "官网/Shop",
+          "https://www.rttnpnk.net/"
+        ],
+        [
+          "Carrd",
+          "https://3liemarie.carrd.co/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/3liemarie"
+        ],
+        [
+          "Instagram",
+          "https://www.instagram.com/3liemarie"
+        ]
+      ]
+    },
+    {
+      "id": "pewchii",
+      "name": "Pewchii",
+      "type": "creatorKol",
+      "priority": "B",
+      "score": 72,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX Artist Alley K1",
+      "followerScale": "TikTok 公开快照约 66.8K｜2.2M likes",
+      "followerTier": "L2：5万+ 画师/KOL",
+      "followerNote": "适合小物周边与社媒传播，需进一步确认 IG/X 主页表现。",
+      "tags": [
+        "动画感",
+        "stationery",
+        "贴纸",
+        "小物"
+      ],
+      "angles": [
+        "周边",
+        "美术"
+      ],
+      "reason": "适合低风险小批量文具、贴纸、活动赠品方向。更适合采购打样和风格观察。",
+      "cases": [
+        "2D illustration / animation feel",
+        "stationery、贴纸、桌面小物"
+      ],
+      "visuals": [
+        {
+          "title": "AA Portfolio",
+          "caption": "看 Artist Alley 商品与图面",
+          "url": "https://pewchii-aa.carrd.co/"
+        },
+        {
+          "title": "Ko-fi Shop",
+          "caption": "看小物商品化",
+          "url": "https://ko-fi.com/pewchii"
+        }
+      ],
+      "links": [
+        [
+          "AA Portfolio",
+          "https://pewchii-aa.carrd.co/"
+        ],
+        [
+          "Links",
+          "https://pewchii.carrd.co/"
+        ],
+        [
+          "Ko-fi",
+          "https://ko-fi.com/pewchii"
+        ]
+      ]
+    },
+    {
+      "id": "wanderella",
+      "name": "Wanderella",
+      "type": "supplier",
+      "priority": "B",
+      "score": 75,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX Artist Alley O2",
+      "tags": [
+        "贴纸",
+        "keychain",
+        "tote",
+        "hand fan",
+        "wholesale"
+      ],
+      "angles": [
+        "周边"
+      ],
+      "reason": "小型艺术商品品牌，有批发入口。适合观察生活方式小物、展会零售陈列和小额采购合作。",
+      "cases": [
+        "贴纸、钥匙扣、托特包、扇子",
+        "Faire wholesale 批发入口"
+      ],
+      "visuals": [
+        {
+          "title": "Wanderella 官网",
+          "caption": "看生活方式小物",
+          "url": "https://www.wanderella.co/"
+        },
+        {
+          "title": "Faire Wholesale",
+          "caption": "看批发商品与门槛",
+          "url": "https://www.faire.com/brand/b_b5gqurx8"
+        }
+      ],
+      "links": [
+        [
+          "官网",
+          "https://www.wanderella.co/"
+        ],
+        [
+          "About",
+          "https://www.wanderella.co/about/"
+        ],
+        [
+          "Faire wholesale",
+          "https://www.faire.com/brand/b_b5gqurx8"
+        ],
+        [
+          "YouTube",
+          "https://www.youtube.com/@wanderellaco"
+        ]
+      ]
+    },
+    {
+      "id": "2jingis2jing",
+      "name": "2jingis2jing",
+      "type": "supplier",
+      "priority": "B",
+      "score": 74,
+      "events": [
+        "ax2026"
+      ],
+      "region": "北美",
+      "booth": "AX Artist Alley C11",
+      "tags": [
+        "原创IP",
+        "Bunnie Island",
+        "文具",
+        "贴纸",
+        "小物"
+      ],
+      "angles": [
+        "周边"
+      ],
+      "reason": "原创小物和文具体系完整，适合看低风险周边供应链、批发合作和可爱向陈列策略。",
+      "cases": [
+        "Bunnie Island 原创 IP",
+        "贴纸、文具、小型桌面周边"
+      ],
+      "visuals": [
+        {
+          "title": "2jingis2jing 官网",
+          "caption": "看原创 IP 与商品",
+          "url": "https://2jingis2jing.com/"
+        },
+        {
+          "title": "Linktree",
+          "caption": "看社媒/商店入口",
+          "url": "https://linktr.ee/2jingis2jing"
+        }
+      ],
+      "links": [
+        [
+          "官网",
+          "https://2jingis2jing.com/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/2jingis2jing"
+        ],
+        [
+          "YouTube",
+          "https://www.youtube.com/@2jingis2jing"
+        ]
+      ]
+    },
+    {
+      "id": "secretlab",
+      "name": "Secretlab",
+      "type": "supplier",
+      "priority": "B",
+      "score": 70,
+      "events": [
+        "ax2026",
+        "gamescom2026"
+      ],
+      "region": "全球",
+      "booth": "AX KH-436",
+      "tags": [
+        "电竞椅",
+        "桌搭",
+        "高客单",
+        "联名"
+      ],
+      "angles": [
+        "周边",
+        "现场"
+      ],
+      "reason": "适合做游戏房、直播间、线下展示场景的高客单联名参考，不一定是短期采购重点。",
+      "links": [
+        [
+          "官网",
+          "https://secretlab.co/"
+        ],
+        [
+          "Linktree",
+          "https://linktr.ee/secretlab"
+        ]
+      ]
+    },
+    {
+      "id": "bw-kevin-feige",
+      "name": "Kevin Feige 凯文·费奇",
+      "type": "master",
+      "priority": "S",
+      "score": 93,
+      "events": [
+        "bw2026"
+      ],
+      "region": "美国/中国",
+      "booth": "BW2026 海外重磅嘉宾",
+      "tags": [
+        "Marvel",
+        "Disney",
+        "电影工业",
+        "IP宇宙",
+        "行业大佬"
+      ],
+      "angles": [
+        "美术",
+        "现场"
+      ],
+      "reason": "漫威影业总裁、漫威首席创意官，属于真正的行业大佬级嘉宾。对采购而言不一定是直接供应商，但值得业务侧关注 IP 联动、国际宣发、展会嘉宾资源和高规格活动包装方式。",
+      "cases": [
+        "Marvel Studios",
+        "MCU IP宇宙",
+        "BW 漫展首秀"
+      ],
+      "visuals": [
+        {
+          "title": "Marvel 官方",
+          "caption": "看 IP 与官方内容入口",
+          "url": "https://www.marvel.com/"
+        },
+        {
+          "title": "BW 官方页",
+          "caption": "看 BW 嘉宾动态",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "Marvel",
+          "https://www.marvel.com/"
+        ],
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-palworld",
+      "name": "Palworld 幻兽帕鲁",
+      "type": "platform",
+      "priority": "A",
+      "score": 86,
+      "events": [
+        "bw2026"
+      ],
+      "region": "日本/中国",
+      "booth": "4.1H馆 4A27",
+      "tags": [
+        "游戏IP",
+        "周边",
+        "版本节点",
+        "互动展台"
+      ],
+      "angles": [
+        "现场",
+        "周边"
+      ],
+      "reason": "官方动态确认参展，且 7月10日与 1.0 正式版上线节点重合。适合观察版本发布、线下打卡、周边发售和展台互动怎么绑定。",
+      "cases": [
+        "Palworld 1.0 正式版",
+        "展台打卡 / 周边 / 神秘嘉宾"
+      ],
+      "visuals": [
+        {
+          "title": "Palworld 官网",
+          "caption": "看 IP 与产品视觉",
+          "url": "https://www.pocketpair.jp/palworld"
+        },
+        {
+          "title": "BW 官方动态",
+          "caption": "看参展与展位信息",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "Palworld",
+          "https://www.pocketpair.jp/palworld"
+        ],
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-blue-archive",
+      "name": "蔚蓝档案 Blue Archive",
+      "type": "platform",
+      "priority": "A",
+      "score": 84,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国/日本",
+      "booth": "展位待官方后续公开",
+      "tags": [
+        "游戏IP",
+        "二游",
+        "女性用户交叉",
+        "周边"
+      ],
+      "angles": [
+        "周边",
+        "现场"
+      ],
+      "reason": "官方动态确认参展。适合观察二游展台陈列、角色周边、用户排队和社媒传播机制，也可以作为叠纸 IP 线下呈现的横向参考。",
+      "cases": [
+        "Blue Archive 展台",
+        "角色周边 / 打卡 / 二游社群"
+      ],
+      "visuals": [
+        {
+          "title": "蔚蓝档案 B站账号",
+          "caption": "看官方动态",
+          "url": "https://space.bilibili.com/3493265644980448"
+        },
+        {
+          "title": "BW 官方页",
+          "caption": "看展会动态",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "蔚蓝档案 B站",
+          "https://space.bilibili.com/3493265644980448"
+        ],
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-genshin",
+      "name": "原神 Genshin Impact",
+      "type": "platform",
+      "priority": "A",
+      "score": 83,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国/全球",
+      "booth": "媒体披露回归 BW，展位待官方后续公开",
+      "tags": [
+        "HoYoverse",
+        "游戏IP",
+        "全球化",
+        "线下展台"
+      ],
+      "angles": [
+        "现场",
+        "周边"
+      ],
+      "reason": "媒体披露《原神》将再次回归 BW。适合观察全球化二游 IP 的展台叙事、周边销售、舞台活动和玩家打卡动线。",
+      "cases": [
+        "HoYoverse / Genshin",
+        "展台体验 / 周边 / 舞台"
+      ],
+      "visuals": [
+        {
+          "title": "原神官网",
+          "caption": "看官方视觉体系",
+          "url": "https://genshin.hoyoverse.com/"
+        },
+        {
+          "title": "BW 官方页",
+          "caption": "看后续展商动态",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "原神官网",
+          "https://genshin.hoyoverse.com/"
+        ],
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-arknights",
+      "name": "明日方舟 Arknights",
+      "type": "platform",
+      "priority": "A",
+      "score": 82,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国/全球",
+      "booth": "媒体披露参展，展位待官方后续公开",
+      "tags": [
+        "鹰角",
+        "游戏IP",
+        "美术风格",
+        "周边"
+      ],
+      "angles": [
+        "美术",
+        "周边",
+        "现场"
+      ],
+      "reason": "媒体披露《明日方舟》在 BW2026 游戏展商阵容中。适合观察美术风格强 IP 的线下视觉、周边体系和玩家社群运营。",
+      "cases": [
+        "Arknights / Hypergryph",
+        "强美术风格 IP 展台"
+      ],
+      "visuals": [
+        {
+          "title": "明日方舟官网",
+          "caption": "看官方视觉体系",
+          "url": "https://ak.hypergryph.com/"
+        },
+        {
+          "title": "BW 官方页",
+          "caption": "看后续展商动态",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "明日方舟官网",
+          "https://ak.hypergryph.com/"
+        ],
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-delta-force",
+      "name": "三角洲行动 Delta Force",
+      "type": "platform",
+      "priority": "B",
+      "score": 74,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国/全球",
+      "booth": "媒体披露参展，展位待官方后续公开",
+      "tags": [
+        "腾讯",
+        "射击游戏",
+        "硬核用户",
+        "展台体验"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "媒体披露《三角洲行动》在 BW2026 游戏展商阵容中。虽然与叠纸核心女性向业务不完全重合，但适合观察硬核游戏现场体验、试玩动线和舞台组织。",
+      "cases": [
+        "射击游戏试玩区",
+        "硬核用户排队 / 体验设计"
+      ],
+      "visuals": [
+        {
+          "title": "三角洲行动官网",
+          "caption": "看产品视觉与内容",
+          "url": "https://df.qq.com/"
+        },
+        {
+          "title": "BW 官方页",
+          "caption": "看后续展商动态",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "三角洲行动",
+          "https://df.qq.com/"
+        ],
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-monyami",
+      "name": "Monyami_모냐미",
+      "type": "creatorKol",
+      "priority": "A",
+      "score": 81,
+      "events": [
+        "bw2026"
+      ],
+      "region": "韩国/中国",
+      "booth": "嘟嘟脸恶作剧专区 F20 / 鸣潮专区另有摊位",
+      "followerScale": "B站首支入驻视频约55.9万播放/10.6万赞｜X历史快照约8K｜Pixiv 约430张作品",
+      "followerTier": "L2-L3：高互动海外画师/KOL，粉丝量需展前复核",
+      "followerNote": "本人主页与作品页优先；BW官方页只作为参展/展位来源。",
+      "tags": [
+        "海外画师",
+        "周边",
+        "鸣潮",
+        "嘟嘟脸恶作剧"
+      ],
+      "angles": [
+        "女性向",
+        "周边",
+        "美术"
+      ],
+      "reason": "公开动态显示 Monyami 本人将带全新周边首次来中国，并在嘟嘟脸恶作剧专区 F20 及鸣潮专区出现。对象已经具体到创作者本人，适合现场看风格、商品化和互动效果。",
+      "cases": [
+        "全新嘟嘟脸周边",
+        "鸣潮专区摊位"
+      ],
+      "visuals": [
+        {
+          "title": "B站主页",
+          "caption": "看中文区更新、互动和视频表现",
+          "url": "https://space.bilibili.com/3690999148710284"
+        },
+        {
+          "title": "pixiv作品页",
+          "caption": "看插画作品集与联系邮箱",
+          "url": "https://www.pixiv.net/users/67752630"
+        }
+      ],
+      "links": [
+        [
+          "B站主页",
+          "https://space.bilibili.com/3690999148710284"
+        ],
+        [
+          "pixiv",
+          "https://www.pixiv.net/users/67752630"
+        ],
+        [
+          "X",
+          "https://x.com/monyami_"
+        ],
+        [
+          "BW来源",
+          "https://bw.bilibili.com/2026/?msource=syjdt"
+        ]
+      ]
+    },
+    {
+      "id": "bw-modyssey",
+      "name": "MODYSSEY_CN",
+      "type": "creatorKol",
+      "priority": "B",
+      "score": 72,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国/海外",
+      "booth": "BW 人气舞台",
+      "followerScale": "舞台嘉宾，粉丝量待复核",
+      "followerTier": "舞台/KOL资源",
+      "followerNote": "更适合活动资源观察，不是画师采购对象。",
+      "tags": [
+        "舞台",
+        "团体",
+        "KOL",
+        "活动资源"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "BW 官方动态发布 MODYSSEY 问候视频，属于人气舞台资源。适合观察舞台包装、粉丝应援和现场活动节奏。",
+      "cases": [
+        "BW 人气舞台",
+        "问候视频 / 粉丝互动"
+      ],
+      "visuals": [
+        {
+          "title": "BW 官方动态",
+          "caption": "看问候视频与舞台信息",
+          "url": "https://bw.bilibili.com/2026/?msource=syjdt"
+        }
+      ],
+      "links": [
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjdt"
+        ]
+      ]
+    },
+    {
+      "id": "bw-tsh48",
+      "name": "TSH48",
+      "type": "creatorKol",
+      "priority": "B",
+      "score": 71,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国",
+      "booth": "BW UP主舞台",
+      "followerScale": "舞台嘉宾，粉丝量待复核",
+      "followerTier": "舞台/KOL资源",
+      "followerNote": "偏舞台和粉丝应援观察，不是美术采购对象。",
+      "tags": [
+        "UP主舞台",
+        "女团",
+        "KOL",
+        "活动资源"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "BW 官方动态公开 TSH48 将登陆 UP 主舞台。适合观察粉丝应援、舞台活动和 B站线下年轻用户互动。",
+      "cases": [
+        "UP主舞台",
+        "问候视频 / 粉丝互动"
+      ],
+      "visuals": [
+        {
+          "title": "BW 官方动态",
+          "caption": "看问候视频与舞台信息",
+          "url": "https://bw.bilibili.com/2026/?msource=syjdt"
+        }
+      ],
+      "links": [
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjdt"
+        ]
+      ]
+    },
+    {
+      "id": "bw-quadlips",
+      "name": "Quadlips",
+      "type": "creatorKol",
+      "priority": "B",
+      "score": 70,
+      "events": [
+        "bw2026"
+      ],
+      "region": "海外/中国",
+      "booth": "BW 现场嘉宾",
+      "followerScale": "舞台嘉宾，粉丝量待复核",
+      "followerTier": "舞台/KOL资源",
+      "followerNote": "适合现场活动与海外粉丝资源观察。",
+      "tags": [
+        "海外嘉宾",
+        "舞台",
+        "KOL",
+        "粉丝活动"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "BW 官方动态公开 Quadlips 将出席。适合观察海外嘉宾在国内 ACG 展会的粉丝触达方式。",
+      "cases": [
+        "海外嘉宾问候视频",
+        "舞台 / 粉丝互动"
+      ],
+      "visuals": [
+        {
+          "title": "BW 官方动态",
+          "caption": "看问候视频与舞台信息",
+          "url": "https://bw.bilibili.com/2026/?msource=syjdt"
+        }
+      ],
+      "links": [
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjdt"
+        ]
+      ]
+    },
+    {
+      "id": "bw-genesis",
+      "name": "海上世界 Genesis",
+      "type": "supplier",
+      "priority": "B",
+      "score": 69,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国",
+      "booth": "2.1H-2A03",
+      "tags": [
+        "展商",
+        "周边",
+        "线下互动",
+        "打卡"
+      ],
+      "angles": [
+        "周边",
+        "现场"
+      ],
+      "reason": "BW 官方页动态显示其确认参展并公开展位 2.1H-2A03。适合现场观察小型展商的周边、抽奖、打卡和互动组织。",
+      "cases": [
+        "定制充电宝抽奖",
+        "展位打卡 / 周边互动"
+      ],
+      "visuals": [
+        {
+          "title": "BW 官方动态",
+          "caption": "看参展动态",
+          "url": "https://bw.bilibili.com/2026/?msource=syjbl"
+        }
+      ],
+      "links": [
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjbl"
+        ]
+      ]
+    },
+    {
+      "id": "bw-armor-hero",
+      "name": "铠甲勇士",
+      "type": "platform",
+      "priority": "B",
+      "score": 68,
+      "events": [
+        "bw2026"
+      ],
+      "region": "中国",
+      "booth": "2.1H-2A41",
+      "tags": [
+        "IP",
+        "特摄",
+        "线下打卡",
+        "周边"
+      ],
+      "angles": [
+        "现场",
+        "周边"
+      ],
+      "reason": "官方动态显示铠甲勇士确认参展并公开展位 2.1H-2A41。适合观察经典 IP 如何做线下集结、打卡和粉丝互动。",
+      "cases": [
+        "特摄 IP 展台",
+        "粉丝集结 / 线下互动"
+      ],
+      "visuals": [
+        {
+          "title": "铠甲勇士官方入口",
+          "caption": "看 IP 信息",
+          "url": "https://space.bilibili.com/3546630108310247"
+        },
+        {
+          "title": "BW 官方动态",
+          "caption": "看展位信息",
+          "url": "https://bw.bilibili.com/2026/?msource=syjdt"
+        }
+      ],
+      "links": [
+        [
+          "BW 官方",
+          "https://bw.bilibili.com/2026/?msource=syjdt"
+        ]
+      ]
+    },
+    {
+      "id": "cj-505-pulse",
+      "name": "505 Pulse",
+      "type": "platform",
+      "priority": "A",
+      "score": 82,
+      "events": [
+        "cj2026"
+      ],
+      "region": "海外/中国",
+      "booth": "CJGC INDIE GAME W4-B-IG083",
+      "tags": [
+        "发行商",
+        "独立游戏",
+        "全球发行",
+        "营销支持",
+        "B2B"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "ChinaJoy 官方新闻明确 505 Pulse 将携多款游戏亮相 INDIE GAME 展区，展位 W4-B-IG083。对叠纸采购而言，重点不是采购它，而是观察海外发行商如何做独立游戏现场试玩、PR、本地化和展区商务洽谈。",
+      "cases": [
+        "505 Games / Digital Bros",
+        "发行支持、QA、本地化、市场营销和公关"
+      ],
+      "visuals": [
+        {
+          "title": "505 Pulse / 505 Games",
+          "caption": "看发行商项目与品牌",
+          "url": "https://505games.com/"
+        },
+        {
+          "title": "ChinaJoy 官方新闻",
+          "caption": "看展位与参展信息",
+          "url": "https://btb.chinajoy.net/news/63816"
+        }
+      ],
+      "links": [
+        [
+          "505 Games",
+          "https://505games.com/"
+        ],
+        [
+          "ChinaJoy 新闻",
+          "https://btb.chinajoy.net/news/63816"
+        ]
+      ]
+    },
+    {
+      "id": "cj-game-connection",
+      "name": "ChinaJoy-Game Connection INDIE GAME 展区",
+      "type": "platform",
+      "priority": "A",
+      "score": 81,
+      "events": [
+        "cj2026"
+      ],
+      "region": "中国/全球",
+      "booth": "W4馆 INDIE GAME 展区",
+      "tags": [
+        "Game Connection",
+        "独立游戏",
+        "发行商",
+        "全球项目",
+        "B2B"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "官方新闻写明该展区位于 W4 馆，规模约 720 平米、可容纳 150+ 展位，并面向全球开发者、发行商与行业专业人士。适合采购侧系统性扫发行、PR、本地化、媒体曝光和海外项目资源。",
+      "cases": [
+        "CJGC开发大奖",
+        "Game Connection × ChinaJoy B2B 展区"
+      ],
+      "visuals": [
+        {
+          "title": "Game Connection",
+          "caption": "看展区与报名入口",
+          "url": "https://www.game-connection.com/"
+        },
+        {
+          "title": "ChinaJoy 官方招商新闻",
+          "caption": "看展区规模与商务资源",
+          "url": "https://btb.chinajoy.net/news/63719"
+        }
+      ],
+      "links": [
+        [
+          "Game Connection",
+          "https://www.game-connection.com/"
+        ],
+        [
+          "ChinaJoy 新闻",
+          "https://btb.chinajoy.net/news/63719"
+        ]
+      ]
+    },
+    {
+      "id": "cj-steam-festival",
+      "name": "蒸汽平台 / Steam 线上盛典",
+      "type": "platform",
+      "priority": "A",
+      "score": 79,
+      "events": [
+        "cj2026"
+      ],
+      "region": "中国/全球",
+      "booth": "CJGC 线上推广活动",
+      "tags": [
+        "Steam",
+        "蒸汽平台",
+        "线上曝光",
+        "发行",
+        "直播带货"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "ChinaJoy 官方新闻提到 CJGC 线上盛典携手蒸汽平台与 Steam，入围项目可在站内活动页面集中曝光。对采购而言，这是游戏海外/国内宣发、站内曝光、折扣直播玩法的重点观察对象。",
+      "cases": [
+        "Steam站内活动页",
+        "蒸汽平台线上盛典 / 长尾曝光"
+      ],
+      "visuals": [
+        {
+          "title": "蒸汽平台",
+          "caption": "看国内 Steam 生态入口",
+          "url": "https://store.steamchina.com/"
+        },
+        {
+          "title": "ChinaJoy 官方新闻",
+          "caption": "看线上盛典信息",
+          "url": "https://btb.chinajoy.net/news/63719"
+        }
+      ],
+      "links": [
+        [
+          "蒸汽平台",
+          "https://store.steamchina.com/"
+        ],
+        [
+          "ChinaJoy 新闻",
+          "https://btb.chinajoy.net/news/63719"
+        ]
+      ]
+    },
+    {
+      "id": "cj-xsolla",
+      "name": "Xsolla 艾克索拉",
+      "type": "supplier",
+      "priority": "A",
+      "score": 80,
+      "events": [
+        "cj2026"
+      ],
+      "region": "美国/中国",
+      "booth": "BTOB W4-C102",
+      "tags": [
+        "出海",
+        "支付",
+        "商业化",
+        "发行变现",
+        "全球化"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "Xsolla 确认参展 ChinaJoy 2026 BTOB，展位 W4-C102。它不是美术类供应商，但对叠纸这类全球化游戏公司有采购价值：可聊海外支付、本地化支付网络、商业化工具、玩家运营和出海增长方案。",
+      "cases": [
+        "Valve / Take-Two / KRAFTON / Playrix 等客户背书",
+        "支付、变现、营销、分发、投融资工具"
+      ],
+      "visuals": [
+        {
+          "title": "Xsolla 官网",
+          "caption": "看产品与客户案例",
+          "url": "https://xsolla.com/"
+        },
+        {
+          "title": "ChinaJoy 参展信息",
+          "caption": "看展位与参展说明",
+          "url": "https://ol.3dmgame.com/news/202606/43045.html"
+        }
+      ],
+      "links": [
+        [
+          "Xsolla",
+          "https://xsolla.com/"
+        ],
+        [
+          "参展信息",
+          "https://ol.3dmgame.com/news/202606/43045.html"
+        ]
+      ]
+    },
+    {
+      "id": "cj-mobupps",
+      "name": "Mobupps",
+      "type": "supplier",
+      "priority": "A",
+      "score": 78,
+      "events": [
+        "cj2026"
+      ],
+      "region": "全球",
+      "booth": "BTOB W3-G205",
+      "tags": [
+        "效果营销",
+        "买量",
+        "出海增长",
+        "广告科技",
+        "AI投放"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "Mobupps 确认参展 ChinaJoy 2026 BTOB，展位 W3-G205。它比普通展会执行商更贴近营销采购：可聊全球效果营销、程序化投放、移动端/CTV/OEM 流量、AI 投放工具和出海获客。",
+      "cases": [
+        "MAFO / iRTB / ECHO AI",
+        "全球效果营销与流量变现"
+      ],
+      "visuals": [
+        {
+          "title": "Mobupps 官网",
+          "caption": "看广告科技产品",
+          "url": "https://www.mobupps.com/"
+        },
+        {
+          "title": "ChinaJoy 参展信息",
+          "caption": "看展位与参展说明",
+          "url": "https://ol.3dmgame.com/news/202606/43046.html"
+        }
+      ],
+      "links": [
+        [
+          "Mobupps",
+          "https://www.mobupps.com/"
+        ],
+        [
+          "参展信息",
+          "https://ol.3dmgame.com/news/202606/43046.html"
+        ]
+      ]
+    },
+    {
+      "id": "cj-evnia",
+      "name": "EVNIA 弈威",
+      "type": "supplier",
+      "priority": "B",
+      "score": 72,
+      "events": [
+        "cj2026"
+      ],
+      "region": "中国/全球",
+      "booth": "CJGC INDIE GAME 独家显示设备合作伙伴",
+      "tags": [
+        "显示器",
+        "展台硬件",
+        "试玩区",
+        "电竞设备"
+      ],
+      "angles": [
+        "现场"
+      ],
+      "reason": "ChinaJoy 官方新闻写明 EVNIA 将继续为 INDIE GAME 展区提供全程硬件支持，现场展示设备由其专业级显示器组成。适合采购观察展台试玩硬件、显示设备赞助和品牌联合露出。",
+      "cases": [
+        "飞利浦高端游戏品牌",
+        "展区显示设备合作"
+      ],
+      "visuals": [
+        {
+          "title": "EVNIA 官方",
+          "caption": "看显示设备产品线",
+          "url": "https://www.evnia.philips/"
+        },
+        {
+          "title": "ChinaJoy 官方新闻",
+          "caption": "看合作伙伴信息",
+          "url": "https://btb.chinajoy.net/news/63719"
+        }
+      ],
+      "links": [
+        [
+          "EVNIA",
+          "https://www.evnia.philips/"
+        ],
+        [
+          "ChinaJoy 新闻",
+          "https://btb.chinajoy.net/news/63719"
+        ]
+      ]
+    },
+    {
+      "id": "capcom-gamescom",
+      "name": "CAPCOM gamescom 2026",
+      "type": "platform",
+      "priority": "A",
+      "score": 78,
+      "events": [
+        "gamescom2026"
+      ],
+      "region": "日本/欧洲",
+      "booth": "gamescom 展商 / 展台待复核",
+      "tags": [
+        "大型游戏厂商",
+        "IP",
+        "现场展台",
+        "欧洲宣发"
+      ],
+      "angles": [
+        "现场",
+        "美术"
+      ],
+      "reason": "CAPCOM 已发布 gamescom 2026 参展相关信息，适合观察欧洲大型游戏展台叙事、试玩动线、舞台排队与 IP 商品化。",
+      "cases": [
+        "大型 IP 展台",
+        "试玩区 / 舞台 / 周边陈列"
+      ],
+      "visuals": [
+        {
+          "title": "CAPCOM 官方",
+          "caption": "看品牌与游戏阵容",
+          "url": "https://www.capcom-games.com/"
+        },
+        {
+          "title": "gamescom 官方展商搜索",
+          "caption": "展商名单持续更新",
+          "url": "https://www.gamescom.global/en/exhibitors-and-products"
+        }
+      ],
+      "links": [
+        [
+          "CAPCOM",
+          "https://www.capcom-games.com/"
+        ],
+        [
+          "gamescom Exhibitors",
+          "https://www.gamescom.global/en/exhibitors-and-products"
+        ]
+      ]
+    },
+    {
+      "id": "nintendo-gamescom",
+      "name": "Nintendo gamescom 2026",
+      "type": "platform",
+      "priority": "S",
+      "score": 86,
+      "events": [
+        "gamescom2026"
+      ],
+      "region": "日本/欧洲",
+      "booth": "gamescom 展商 / 展台待复核",
+      "tags": [
+        "主机平台",
+        "IP体验",
+        "家庭向",
+        "展台动线"
+      ],
+      "angles": [
+        "现场",
+        "周边"
+      ],
+      "reason": "Nintendo 回归 gamescom 的信息已公开，适合重点观察主机平台级展台动线、粉丝排队机制、体验区和现场周边策略。",
+      "cases": [
+        "平台级展台体验",
+        "粉丝排队 / 试玩 / 家庭向互动"
+      ],
+      "visuals": [
+        {
+          "title": "Nintendo 欧洲官网",
+          "caption": "看官方品牌入口",
+          "url": "https://www.nintendo.com/en-gb/"
+        },
+        {
+          "title": "gamescom 官方展商搜索",
+          "caption": "展商名单持续更新",
+          "url": "https://www.gamescom.global/en/exhibitors-and-products"
+        }
+      ],
+      "links": [
+        [
+          "Nintendo Europe",
+          "https://www.nintendo.com/en-gb/"
+        ],
+        [
+          "gamescom Exhibitors",
+          "https://www.gamescom.global/en/exhibitors-and-products"
+        ]
+      ]
+    },
+    {
+      "id": "kow-yokoyama-wf",
+      "name": "Kow Yokoyama 横山宏",
+      "type": "master",
+      "priority": "A",
+      "score": 84,
+      "events": [
+        "wf2026s"
+      ],
+      "region": "日本",
+      "booth": "Wonder Festival 2026 Summer 特别关注",
+      "tags": [
+        "模型",
+        "科幻",
+        "Ma.K",
+        "大师",
+        "收藏品"
+      ],
+      "angles": [
+        "美术",
+        "周边"
+      ],
+      "reason": "Wonder Festival 的核心价值是模型、原型师和收藏级造型。横山宏这类模型/科幻美术大师更适合做高端收藏品、雕像、模型线的行业观察。",
+      "cases": [
+        "Maschinen Krieger / Ma.K",
+        "科幻模型、机甲造型、收藏级设计"
+      ],
+      "visuals": [
+        {
+          "title": "Wonder Festival 官方",
+          "caption": "看 WF 夏展信息",
+          "url": "https://wonfes.jp/"
+        },
+        {
+          "title": "Ma.K 官方入口",
+          "caption": "看模型美术调性",
+          "url": "https://www.hasegawa-model.co.jp/mk/"
+        }
+      ],
+      "links": [
+        [
+          "WF 官方",
+          "https://wonfes.jp/"
+        ],
+        [
+          "Ma.K",
+          "https://www.hasegawa-model.co.jp/mk/"
+        ]
+      ]
+    },
+    {
+      "id": "wf-hasegawa-mak",
+      "name": "Hasegawa 长谷川 Ma.K 模型线",
+      "type": "supplier",
+      "priority": "B",
+      "score": 76,
+      "events": [
+        "wf2026s"
+      ],
+      "region": "日本",
+      "booth": "Wonder Festival 2026 Summer / Ma.K 相关展出",
+      "tags": [
+        "模型",
+        "GK",
+        "收藏品",
+        "科幻",
+        "原型"
+      ],
+      "angles": [
+        "周边",
+        "美术"
+      ],
+      "reason": "Hasegawa 的 Ma.K 模型线和横山宏作品关联度高。适合叠纸观察高端模型、雕像、GK、收藏级周边的供应链、包装和原型合作路径。",
+      "cases": [
+        "Hasegawa × Maschinen Krieger",
+        "高端模型 / GK / 收藏级周边"
+      ],
+      "visuals": [
+        {
+          "title": "WF Dealer List",
+          "caption": "逐个拆具体 dealer",
+          "url": "https://wonfes.jp/specialsite/dealer/"
+        },
+        {
+          "title": "Ma.K 官方入口",
+          "caption": "看科幻模型调性",
+          "url": "https://www.hasegawa-model.co.jp/mk/"
+        }
+      ],
+      "links": [
+        [
+          "Dealer List",
+          "https://wonfes.jp/specialsite/dealer/"
+        ],
+        [
+          "Ma.K",
+          "https://www.hasegawa-model.co.jp/mk/"
+        ]
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "name": "Anime Expo 官方源",
+      "cadence": "展前每周，展前 30 天每日",
+      "fields": "Exhibitors / Artist Alley / Talent / Schedule",
+      "links": [
+        [
+          "Exhibitors",
+          "https://www.anime-expo.org/ax2026exhibitlist/"
+        ],
+        [
+          "Artist Alley",
+          "https://www.anime-expo.org/ax2026aalist/"
+        ],
+        [
+          "Talent",
+          "https://www.anime-expo.org/ax/talent/"
+        ],
+        [
+          "Schedule",
+          "https://www.anime-expo.org/ax/schedule-2026/"
+        ]
+      ]
+    },
+    {
+      "name": "gamescom 官方源",
+      "cadence": "7-8 月每周，展前两周每日",
+      "fields": "Exhibitors / Business Area / Event Program",
+      "links": [
+        [
+          "官网",
+          "https://www.gamescom.global/en"
+        ],
+        [
+          "Exhibitors",
+          "https://www.gamescom.global/en/exhibitors-and-products"
+        ]
+      ]
+    },
+    {
+      "name": "国内展会源",
+      "cadence": "展前 45 天每周",
+      "fields": "BW / ChinaJoy / GAF / WF 上海",
+      "links": [
+        [
+          "BilibiliWorld",
+          "https://bw.bilibili.com/"
+        ],
+        [
+          "ChinaJoy",
+          "https://www.chinajoy.net/"
+        ],
+        [
+          "GAF",
+          "https://www.gaf-festival.com/"
+        ]
+      ]
+    },
+    {
+      "name": "日本展会源",
+      "cadence": "展前 60 天每两周",
+      "fields": "TGS / Wonder Festival / Comiket / AnimeJapan",
+      "links": [
+        [
+          "TGS",
+          "https://tgs.cesa.or.jp/en"
+        ],
+        [
+          "Wonder Festival",
+          "https://wonfes.jp/"
+        ],
+        [
+          "Comiket",
+          "https://www.comiket.co.jp/"
+        ],
+        [
+          "AnimeJapan",
+          "https://www.anime-japan.jp/en/"
+        ]
+      ]
+    }
+  ],
+  "excludedEntityIds": [
+    "bw-palworld",
+    "bw-blue-archive",
+    "bw-genshin",
+    "bw-arknights",
+    "bw-delta-force",
+    "bw-modyssey",
+    "bw-tsh48",
+    "bw-quadlips",
+    "bw-genesis",
+    "bw-armor-hero",
+    "cj-505-pulse",
+    "cj-game-connection",
+    "cj-steam-festival",
+    "cj-xsolla",
+    "cj-mobupps",
+    "cj-evnia",
+    "capcom-gamescom",
+    "nintendo-gamescom"
+  ],
+  "visibleEntityIds": [
+    "animon-life",
+    "acg-go",
+    "aitai-kuji",
+    "amiami",
+    "acro-tokyo",
+    "yoshitaka-amano",
+    "acky-bright",
+    "kamome-shirahama",
+    "1o8k",
+    "3liemarie",
+    "pewchii",
+    "wanderella",
+    "2jingis2jing",
+    "secretlab",
+    "bw-kevin-feige",
+    "bw-monyami",
+    "kow-yokoyama-wf",
+    "wf-hasegawa-mak"
+  ]
+}
