@@ -1,10 +1,29 @@
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, Plus, Pencil } from 'lucide-react';
 import type { IEvent } from '@/api/types';
 
-export default function EventCalendarSection({ events }: { events: IEvent[] }) {
+export default function EventCalendarSection({
+  events,
+  canEdit = false,
+  onCreate,
+  onEdit,
+}: {
+  events: IEvent[];
+  canEdit?: boolean;
+  onCreate?: () => void;
+  onEdit?: (event: IEvent) => void;
+}) {
   return (
     <div className="space-y-3">
+      {canEdit && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={onCreate}>
+            <Plus className="size-4" />
+            新增展会
+          </Button>
+        </div>
+      )}
       {events.map((event) => (
         <article key={event.id} className="flex gap-4 rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -12,7 +31,14 @@ export default function EventCalendarSection({ events }: { events: IEvent[] }) {
             <span className="mt-1 text-xs font-medium">{event.short}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold">{event.name}</h3>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-base font-semibold">{event.name}</h3>
+              {canEdit && (
+                <Button variant="ghost" size="sm" onClick={() => onEdit?.(event)} className="shrink-0">
+                  <Pencil className="size-4" />
+                </Button>
+              )}
+            </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {event.date} · {event.city} · {event.venue}
             </p>

@@ -18,4 +18,16 @@ export const entityApi = {
     const res = await axiosForBackend({ url: `/api/entities/${id}`, method: 'GET' });
     return res.data;
   },
+  create: async (data: Partial<IEntity>): Promise<IEntity> => {
+    const res = await axiosForBackend({ url: '/api/entities', method: 'POST', data });
+    return res.data;
+  },
+  update: async (id: string, data: Partial<IEntity>): Promise<IEntity> => {
+    const res = await axiosForBackend({ url: `/api/entities/${id}`, method: 'PUT', data });
+    return res.data;
+  },
+  remove: async (id: string): Promise<{ success: boolean }> => {
+    const res = await axiosForBackend({ url: `/api/entities/${id}`, method: 'DELETE' });
+    return res.data;
+  },
 };

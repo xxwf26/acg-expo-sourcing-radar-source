@@ -1,4 +1,5 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Plus, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { ISource } from '@/api/types';
 
 const WORKFLOW_NOTES = [
@@ -31,13 +32,38 @@ function Panel({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-export default function SourcesSection({ sources }: { sources: ISource[] }) {
+export default function SourcesSection({
+  sources,
+  canEdit = false,
+  onCreate,
+  onEdit,
+}: {
+  sources: ISource[];
+  canEdit?: boolean;
+  onCreate?: () => void;
+  onEdit?: (source: ISource) => void;
+}) {
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-3">
+        {canEdit && (
+          <div className="flex justify-end">
+            <Button size="sm" onClick={onCreate}>
+              <Plus className="size-4" />
+              新增信息源
+            </Button>
+          </div>
+        )}
         {sources.map((source) => (
           <div key={source.id} className="rounded-xl border bg-card p-4 shadow-sm">
-            <h3 className="text-sm font-bold">{source.name}</h3>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-sm font-bold">{source.name}</h3>
+              {canEdit && (
+                <Button variant="ghost" size="sm" onClick={() => onEdit?.(source)} className="shrink-0">
+                  <Pencil className="size-4" />
+                </Button>
+              )}
+            </div>
             <p className="mt-1.5 text-xs text-muted-foreground">监控频率：{source.cadence}</p>
             <p className="text-xs text-muted-foreground">字段：{source.fields}</p>
             {source.links && source.links.length > 0 && (

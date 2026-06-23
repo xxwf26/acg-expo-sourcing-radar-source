@@ -1,6 +1,19 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { EntityService, type EntityFilter } from './entity.service';
+import { CreateEntityDto, UpdateEntityDto } from './entity.dto';
 
 @Controller('/api/entities')
 @UseGuards(JwtAuthGuard)
@@ -29,5 +42,26 @@ export class EntityController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.entityService.findOne(id);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async create(@Body() dto: CreateEntityDto) {
+    return this.entityService.create(dto);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async update(@Param('id') id: string, @Body() dto: UpdateEntityDto) {
+    return this.entityService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async remove(@Param('id') id: string) {
+    return this.entityService.remove(id);
   }
 }

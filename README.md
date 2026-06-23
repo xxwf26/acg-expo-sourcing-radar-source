@@ -103,11 +103,16 @@ npm run start          # 只起后端，NestJS 托管前端静态资源 + SPA fa
 | POST | `/api/auth/login` | 登录，返回 JWT | 公开 |
 | GET | `/api/auth/me` | 校验 token，返回当前用户 | 登录 |
 | GET | `/api/events` | 展会列表 | 登录 |
+| POST/PUT/DELETE | `/api/events[/:id]` | 展会增/改/删（删除前检查是否被对象关联） | **仅 admin** |
 | GET | `/api/entities?type=&priority=&event=&angle=&keyword=&includeExcluded=` | 对象列表（默认排除 excluded；type/priority 逗号分隔多值） | 登录 |
 | GET | `/api/entities/:id` | 对象详情 | 登录 |
+| POST/PUT/DELETE | `/api/entities[/:id]` | 对象增/改/删（新增自动 UUID；删除前检查是否有建联记录） | **仅 admin** |
 | GET | `/api/sources` | 信息源 | 登录 |
+| POST/PUT/DELETE | `/api/sources[/:id]` | 信息源增/改/删 | **仅 admin** |
 | GET | `/api/engagements[?entityId=]` | 建联记录（全部 / 单个） | 登录 |
 | PUT | `/api/engagements/:entityId` | upsert 建联状态/负责人/备注（`updatedBy` 取自 token） | **仅 admin** |
+
+> **增删改（CRUD）**：admin 登录后，建联对象/展会/信息源三类均可在网页上增删改——对象在详情弹窗内"编辑/新增"，展会与信息源用各自的编辑弹窗。标签/案例用 chip 编辑，关联展会/采购视角用多选，链接/视觉预览用行编辑。删除带引用保护：被建联记录引用的对象、被对象关联的展会会被拒绝删除并提示。viewer 只读，看不到任何增删改入口。
 
 ## 与原飞书版的差异
 

@@ -3,20 +3,43 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SlidersHorizontal, Radar, LogOut } from 'lucide-react';
+import { SlidersHorizontal, Radar, LogOut, Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useEvents, useEntities, useSources } from '@/hooks/useRadarData';
 import { useEngagements } from '@/hooks/useEngagement';
+import { useEventMutations, useSourceMutations } from '@/hooks/useCrudMutations';
 import FilterPanelSection, { DEFAULT_FILTERS, type FilterState } from './FilterPanelSection';
 import EntityGridSection from './EntityGridSection';
 import EntityDetailModal from './EntityDetailModal';
+import SimpleEditModal, { type SimpleField } from './SimpleEditModal';
 import VisualWallSection from './VisualWallSection';
 import EventCalendarSection from './EventCalendarSection';
 import SourcesSection from './SourcesSection';
 import WorkflowSection from './WorkflowSection';
 import EntitySidePanel from './EntitySidePanel';
 import RadarScope from './RadarScope';
-import type { IEntity, IEngagement } from '@/api/types';
+import type { IEntity, IEngagement, IEvent, ISource } from '@/api/types';
+
+const EVENT_FIELDS: SimpleField[] = [
+  { key: 'name', label: '名称', type: 'text', required: true, placeholder: '展会全名' },
+  { key: 'short', label: '短名/徽章', type: 'text', required: true, placeholder: '如 AX' },
+  { key: 'date', label: '日期', type: 'text', placeholder: '如 2026-07-02 至 2026-07-05' },
+  { key: 'month', label: '月份', type: 'text', placeholder: '如 7月' },
+  { key: 'city', label: '城市', type: 'text', placeholder: '如 美国 洛杉矶' },
+  { key: 'region', label: '地区', type: 'text', placeholder: '如 北美' },
+  { key: 'venue', label: '场馆', type: 'text' },
+  { key: 'status', label: '状态', type: 'text', placeholder: '如 名单更新中' },
+  { key: 'tags', label: '标签', type: 'chips', placeholder: '输入后回车' },
+  { key: 'note', label: '采购侧说明', type: 'textarea' },
+  { key: 'links', label: '链接', type: 'links' },
+];
+
+const SOURCE_FIELDS: SimpleField[] = [
+  { key: 'name', label: '名称', type: 'text', required: true, placeholder: '信息源名称' },
+  { key: 'cadence', label: '监控频率', type: 'text', placeholder: '如 展前每周' },
+  { key: 'fields', label: '字段', type: 'text', placeholder: '如 Exhibitors / Talent' },
+  { key: 'links', label: '链接', type: 'links' },
+];
 
 type ViewKey = 'entities' | 'visual' | 'events' | 'sources' | 'workflow';
 
@@ -48,6 +71,21 @@ export default function RadarDashboardPage() {
   const [view, setView] = useState<ViewKey>('entities');
   const [activeEntity, setActiveEntity] = useState<IEntity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [creatingEntity, setCreatingEntity] = useState(false);
+
+  // events / sources 编辑弹窗状态
+  const eventMut = useEventMutations();
+  const sourceMut = useSourceMutations();
+  const [eventModal, setEventModal] = useState<{ open: boolean; data: Partial<IEvent>; isCreate: boolean }>({
+    open: false,
+    data: {},
+    isCreate: false,
+  });
+  const [sourceModal, setSourceModal] = useState<{ open: boolean; data: Partial<ISource>; isCreate: boolean }>({
+    open: false,
+    data: {},
+    isCreate: false,
+  });
 
   const events = eventsQuery.data?.list || [];
   const allEntities = entitiesQuery.data?.list || [];
@@ -90,7 +128,14 @@ export default function RadarDashboardPage() {
   }, [visibleEntities, filters]);
 
   const openEntity = (entity: IEntity) => {
+    setCreatingEntity(false);
     setActiveEntity(entity);
+    setModalOpen(true);
+  };
+
+  const openCreateEntity = () => {
+    setCreatingEntity(true);
+    setActiveEntity(null);
     setModalOpen(true);
   };
 
@@ -217,9 +262,17 @@ export default function RadarDashboardPage() {
             {view === 'entities' && (
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    共 {filtered.length} 个匹配对象（按匹配分排序）。点击卡片查看完整信息并维护建联状态。
-                  </p>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      共 {filtered.length} 个匹配对象（按匹配分排序）。点击卡片查看完整信息并维护建联状态。
+                    </p>
+                    {isAdmin && (
+                      <Button size="sm" onClick={openCreateEntity} className="shrink-0">
+                        <Plus className="size-4" />
+                        新增对象
+                      </Button>
+                    )}
+                  </div>
                   <EntityGridSection
                     entities={filtered}
                     engagementMap={engagementMap}
@@ -231,8 +284,22 @@ export default function RadarDashboardPage() {
               </div>
             )}
             {view === 'visual' && <VisualWallSection entities={filtered} />}
-            {view === 'events' && <EventCalendarSection events={events} />}
-            {view === 'sources' && <SourcesSection sources={sources} />}
+            {view === 'events' && (
+              <EventCalendarSection
+                events={events}
+                canEdit={isAdmin}
+                onCreate={() => setEventModal({ open: true, data: { tags: [], links: [] }, isCreate: true })}
+                onEdit={(ev) => setEventModal({ open: true, data: ev, isCreate: false })}
+              />
+            )}
+            {view === 'sources' && (
+              <SourcesSection
+                sources={sources}
+                canEdit={isAdmin}
+                onCreate={() => setSourceModal({ open: true, data: { links: [] }, isCreate: true })}
+                onEdit={(s) => setSourceModal({ open: true, data: s, isCreate: false })}
+              />
+            )}
             {view === 'workflow' && <WorkflowSection />}
           </>
         )}
@@ -243,8 +310,69 @@ export default function RadarDashboardPage() {
         engagement={activeEntity ? engagementMap.get(activeEntity.id) : undefined}
         events={events}
         canEdit={isAdmin}
+        isCreate={creatingEntity}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+
+      {/* 展会 新增/编辑 */}
+      <SimpleEditModal<IEvent>
+        title={eventModal.isCreate ? '新增展会' : `编辑展会：${eventModal.data.name || ''}`}
+        fields={EVENT_FIELDS}
+        initial={eventModal.data}
+        isCreate={eventModal.isCreate}
+        open={eventModal.open}
+        onOpenChange={(o) => setEventModal((s) => ({ ...s, open: o }))}
+        saving={eventMut.create.isPending || eventMut.update.isPending}
+        onSave={(data) => {
+          if (eventModal.isCreate) {
+            eventMut.create.mutate(data, { onSuccess: () => setEventModal((s) => ({ ...s, open: false })) });
+          } else {
+            eventMut.update.mutate(
+              { id: (eventModal.data as IEvent).id, data },
+              { onSuccess: () => setEventModal((s) => ({ ...s, open: false })) },
+            );
+          }
+        }}
+        onDelete={
+          eventModal.isCreate
+            ? undefined
+            : () => {
+                const ev = eventModal.data as IEvent;
+                if (!confirm(`确认删除展会「${ev.name}」？`)) return;
+                eventMut.remove.mutate(ev.id, { onSuccess: () => setEventModal((s) => ({ ...s, open: false })) });
+              }
+        }
+      />
+
+      {/* 信息源 新增/编辑 */}
+      <SimpleEditModal<ISource>
+        title={sourceModal.isCreate ? '新增信息源' : `编辑信息源：${sourceModal.data.name || ''}`}
+        fields={SOURCE_FIELDS}
+        initial={sourceModal.data}
+        isCreate={sourceModal.isCreate}
+        open={sourceModal.open}
+        onOpenChange={(o) => setSourceModal((s) => ({ ...s, open: o }))}
+        saving={sourceMut.create.isPending || sourceMut.update.isPending}
+        onSave={(data) => {
+          if (sourceModal.isCreate) {
+            sourceMut.create.mutate(data, { onSuccess: () => setSourceModal((s) => ({ ...s, open: false })) });
+          } else {
+            sourceMut.update.mutate(
+              { id: (sourceModal.data as ISource).id, data },
+              { onSuccess: () => setSourceModal((s) => ({ ...s, open: false })) },
+            );
+          }
+        }}
+        onDelete={
+          sourceModal.isCreate
+            ? undefined
+            : () => {
+                const s = sourceModal.data as ISource;
+                if (!confirm(`确认删除信息源「${s.name}」？`)) return;
+                sourceMut.remove.mutate(s.id, { onSuccess: () => setSourceModal((st) => ({ ...st, open: false })) });
+              }
+        }
       />
     </div>
   );
