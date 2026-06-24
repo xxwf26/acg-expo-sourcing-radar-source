@@ -57,9 +57,9 @@ const VIEW_TABS: { key: ViewKey; label: string }[] = [
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div className="glass rounded-xl px-4 py-3 text-white">
-      <div className="text-2xl font-extrabold leading-none">{value}</div>
-      <div className="mt-1 text-xs text-white/70">{label}</div>
+    <div className="glass rounded-lg px-3 py-2 text-white">
+      <div className="text-lg font-extrabold leading-none">{value}</div>
+      <div className="mt-0.5 text-[11px] text-white/70">{label}</div>
     </div>
   );
 }
@@ -211,24 +211,19 @@ export default function RadarDashboardPage() {
 
       {/* 主区 */}
       <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-        {/* 深色雷达 Hero 横幅 */}
-        <section className="radar-hero mb-6 rounded-2xl p-6 shadow-lg sm:p-8">
-          <div className="relative z-10 flex items-start justify-between gap-6">
-            <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-medium text-teal-100 backdrop-blur">
+        {/* 深色雷达 Hero 横幅（紧凑） */}
+        <section className="radar-hero mb-4 rounded-2xl p-4 shadow-lg sm:p-5">
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-1.5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[10px] font-medium text-teal-100 backdrop-blur">
                 <span className="size-1.5 animate-pulse rounded-full bg-teal-300" />
                 实时机会雷达 · 营销采购窗口
               </div>
-              <h2 className="text-2xl font-extrabold leading-tight text-white sm:text-[28px]">
-                从“参加展会”升级成
-                <br className="hidden sm:block" />
-                “全组可复用的机会雷达”
+              <h2 className="text-base font-bold leading-tight text-white sm:text-lg">
+                从“参加展会”升级成“全组可复用的机会雷达”
               </h2>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-teal-50/80">
-                把展会里的艺术家、大厂嘉宾、周边供应商、零售渠道和社区节点沉淀给整个组。业务方提前筛选想建联的人，采购按优先级安排现场拜访。
-              </p>
             </div>
-            <div className="hidden h-36 w-36 shrink-0 md:block lg:h-44 lg:w-44">
+            <div className="hidden h-16 w-16 shrink-0 md:block lg:h-20 lg:w-20">
               <RadarScope />
             </div>
             {/* 移动端操作 */}
@@ -252,7 +247,7 @@ export default function RadarDashboardPage() {
           </div>
 
           {/* 统计：玻璃卡 */}
-          <div className="relative z-10 mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="relative z-10 mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatCard value={events.length} label="重点展会" />
             <StatCard value={visibleEntities.length} label="候选对象" />
             <StatCard
