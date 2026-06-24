@@ -70,6 +70,17 @@ export interface IListResponse<T> {
   total: number;
 }
 
+export type UserRole = 'admin' | 'viewer';
+
+export interface IUser {
+  id: string;
+  username: string;
+  role: UserRole;
+  displayName: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface IEntityFilter {
   type?: string[];
   priority?: string[];

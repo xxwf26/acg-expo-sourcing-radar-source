@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UnauthorizedException, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, UnauthorizedException, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -18,5 +18,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@Request() req: any) {
     return { user: req.user };
+  }
+
+  // 自助改密：任何登录用户可改自己的密码
+  @Put('password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Request() req: any,
+    @Body() body: { oldPassword: string; newPassword: string },
+  ) {
+    return this.authService.changePassword(req.user.userId, body.oldPassword, body.newPassword);
   }
 }

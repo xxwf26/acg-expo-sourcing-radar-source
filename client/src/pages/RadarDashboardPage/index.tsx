@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SlidersHorizontal, Radar, LogOut, Plus } from 'lucide-react';
+import { SlidersHorizontal, Radar, LogOut, Plus, KeyRound, Users } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useEvents, useEntities, useSources } from '@/hooks/useRadarData';
 import { useEngagements } from '@/hooks/useEngagement';
@@ -18,6 +18,9 @@ import SourcesSection from './SourcesSection';
 import WorkflowSection from './WorkflowSection';
 import EntitySidePanel from './EntitySidePanel';
 import RadarScope from './RadarScope';
+import ChangePasswordModal from './ChangePasswordModal';
+import UserManageModal from './UserManageModal';
+import BackToTop from './BackToTop';
 import type { IEntity, IEngagement, IEvent, ISource } from '@/api/types';
 
 const EVENT_FIELDS: SimpleField[] = [
@@ -72,6 +75,10 @@ export default function RadarDashboardPage() {
   const [activeEntity, setActiveEntity] = useState<IEntity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [creatingEntity, setCreatingEntity] = useState(false);
+
+  // 账号相关弹窗
+  const [pwdModalOpen, setPwdModalOpen] = useState(false);
+  const [userModalOpen, setUserModalOpen] = useState(false);
 
   // events / sources 编辑弹窗状态
   const eventMut = useEventMutations();
@@ -162,18 +169,32 @@ export default function RadarDashboardPage() {
         </div>
         <div className="flex-1">{filterPanel}</div>
 
-        {/* 当前用户 + 登出 */}
-        <div className="mt-4 flex items-center justify-between gap-2 border-t pt-4">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{user?.displayName || user?.username}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {isAdmin ? '管理员 · 可维护建联' : '只读用户 · 仅浏览'}
-            </p>
+        {/* 当前用户 + 账号操作 */}
+        <div className="mt-4 border-t pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{user?.displayName || user?.username}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {isAdmin ? '管理员 · 可维护建联' : '只读用户 · 仅浏览'}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={logout} className="shrink-0">
+              <LogOut className="size-4" />
+              登出
+            </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={logout} className="shrink-0">
-            <LogOut className="size-4" />
-            登出
-          </Button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setPwdModalOpen(true)} className="h-7 px-2 text-xs">
+              <KeyRound className="size-3.5" />
+              改密码
+            </Button>
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={() => setUserModalOpen(true)} className="h-7 px-2 text-xs">
+                <Users className="size-3.5" />
+                账号管理
+              </Button>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -231,20 +252,22 @@ export default function RadarDashboardPage() {
           </div>
         </section>
 
-        {/* 视图 Tab */}
-        <Tabs value={view} onValueChange={(v) => setView(v as ViewKey)} className="mb-5">
-          <TabsList className="h-11 gap-1 rounded-xl border bg-card/70 p-1.5 shadow-sm backdrop-blur">
-            {VIEW_TABS.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                className="rounded-lg px-4 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-teal-600 data-[state=active]:font-semibold data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-primary/25"
-              >
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {/* 视图 Tab —— 下滑时吸顶，随时切换模块 */}
+        <div className="sticky top-0 z-30 -mx-4 mb-5 border-b border-border/40 bg-background/80 px-4 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-background/65 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <Tabs value={view} onValueChange={(v) => setView(v as ViewKey)}>
+            <TabsList className="h-11 gap-1 rounded-xl border bg-card/70 p-1.5 shadow-sm backdrop-blur">
+              {VIEW_TABS.map((t) => (
+                <TabsTrigger
+                  key={t.key}
+                  value={t.key}
+                  className="rounded-lg px-4 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-teal-600 data-[state=active]:font-semibold data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-primary/25"
+                >
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
         {/* 内容 */}
         {isLoading ? (
@@ -314,6 +337,12 @@ export default function RadarDashboardPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
       />
+
+      {/* 账号：改密码（全角色） + 账号管理（admin） */}
+      <ChangePasswordModal open={pwdModalOpen} onOpenChange={setPwdModalOpen} />
+      {isAdmin && <UserManageModal open={userModalOpen} onOpenChange={setUserModalOpen} />}
+
+      <BackToTop />
 
       {/* 展会 新增/编辑 */}
       <SimpleEditModal<IEvent>

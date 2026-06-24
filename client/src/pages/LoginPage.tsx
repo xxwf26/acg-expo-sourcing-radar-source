@@ -128,11 +128,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 rounded-lg bg-accent/60 p-3 text-xs text-muted-foreground">
-            <p className="mb-1 font-medium text-accent-foreground">测试账号</p>
-            <p>管理员：admin / admin123（可改建联状态）</p>
-            <p>只读：viewer / viewer123（仅浏览）</p>
-          </div>
+          {import.meta.env.DEV && (
+            <div className="mt-5 rounded-lg bg-accent/60 p-3 text-xs text-muted-foreground">
+              <p className="mb-1 font-medium text-accent-foreground">测试账号（仅开发环境显示）</p>
+              <p>管理员：admin / admin123（可改建联状态）</p>
+              <p>只读：viewer / viewer123（仅浏览）</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

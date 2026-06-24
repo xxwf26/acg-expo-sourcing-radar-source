@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { DRIZZLE_DATABASE, type Database } from '../../database/database.module';
 import { entities, engagements } from '../../database/schema';
 import { and, eq, inArray, like, or, desc, type SQL } from 'drizzle-orm';
@@ -85,15 +85,11 @@ export class EntityService {
   async remove(id: string) {
     const existing = await this.findOne(id);
     if (!existing) throw new NotFoundException('对象不存在');
-    // 引用保护：有建联记录则拒绝删除
-    const [eng] = await this.db
-      .select()
-      .from(engagements)
-      .where(eq(engagements.entityId, id));
-    if (eng) {
-      throw new BadRequestException('该对象已有建联记录，请先清除建联状态后再删除');
-    }
-    await this.db.delete(entities).where(eq(entities.id, id));
+    // 建联记录是对象的从属数据（1:1），删对象时一并清除，避免残留导致删不掉。
+    await this.db.transaction(async (tx) => {
+      await tx.delete(engagements).where(eq(engagements.entityId, id));
+      await tx.delete(entities).where(eq(entities.id, id));
+    });
     return { success: true };
   }
 }

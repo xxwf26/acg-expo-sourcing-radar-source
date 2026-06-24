@@ -50,7 +50,8 @@ acg-sourcing-radar-standalone/
   - 管理员：`admin` / `admin123`
   - 只读：`viewer` / `viewer123`
 - `JWT_SECRET` 必填于 `server/.env`（`.env.example` 有生成命令）。token 默认 8 小时，勾"记住我"延长到 30 天。
-- 改密码/加用户：目前无 UI，改 `users` 表（密码需 bcrypt hash）或扩展 `seed-users.ts`。
+- **改密码**：任何登录用户点左下「改密码」自助修改（校验原密码，改后需重新登录）。
+- **账号管理**（仅 admin）：左下「账号管理」可新增用户、改角色/显示名、重置任意用户密码、删除用户。安全护栏：不能删除自己、不能删除或降级最后一个管理员、用户名不可重复、密码至少 6 位。
 
 ## 首次启动
 
@@ -102,6 +103,7 @@ npm run start          # 只起后端，NestJS 托管前端静态资源 + SPA fa
 |---|---|---|---|
 | POST | `/api/auth/login` | 登录，返回 JWT | 公开 |
 | GET | `/api/auth/me` | 校验 token，返回当前用户 | 登录 |
+| PUT | `/api/auth/password` | 自助改密（校验原密码） | 登录 |
 | GET | `/api/events` | 展会列表 | 登录 |
 | POST/PUT/DELETE | `/api/events[/:id]` | 展会增/改/删（删除前检查是否被对象关联） | **仅 admin** |
 | GET | `/api/entities?type=&priority=&event=&angle=&keyword=&includeExcluded=` | 对象列表（默认排除 excluded；type/priority 逗号分隔多值） | 登录 |
@@ -111,6 +113,11 @@ npm run start          # 只起后端，NestJS 托管前端静态资源 + SPA fa
 | POST/PUT/DELETE | `/api/sources[/:id]` | 信息源增/改/删 | **仅 admin** |
 | GET | `/api/engagements[?entityId=]` | 建联记录（全部 / 单个） | 登录 |
 | PUT | `/api/engagements/:entityId` | upsert 建联状态/负责人/备注（`updatedBy` 取自 token） | **仅 admin** |
+| GET | `/api/users` | 用户列表（不含密码） | **仅 admin** |
+| POST | `/api/users` | 新增用户 | **仅 admin** |
+| PUT | `/api/users/:id` | 改角色/显示名（护栏：不可降级最后一个 admin） | **仅 admin** |
+| PUT | `/api/users/:id/password` | 重置指定用户密码 | **仅 admin** |
+| DELETE | `/api/users/:id` | 删除用户（护栏：不可删自己/最后一个 admin） | **仅 admin** |
 
 > **增删改（CRUD）**：admin 登录后，建联对象/展会/信息源三类均可在网页上增删改——对象在详情弹窗内"编辑/新增"，展会与信息源用各自的编辑弹窗。标签/案例用 chip 编辑，关联展会/采购视角用多选，链接/视觉预览用行编辑。删除带引用保护：被建联记录引用的对象、被对象关联的展会会被拒绝删除并提示。viewer 只读，看不到任何增删改入口。
 
