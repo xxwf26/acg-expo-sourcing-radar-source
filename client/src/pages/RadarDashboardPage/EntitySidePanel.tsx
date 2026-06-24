@@ -1,11 +1,5 @@
 // 建联对象视图右侧固定面板（移植原 index.html side-stack 内容）
-
-const WEEKLY_ACTIONS = [
-  'AX 2026：先锁定 Animon Life、ACG Go Anime、Aitai Kuji、AmiAmi、ACRO TOKYO。',
-  'BW 2026：只保留 Kevin Feige、Monyami 这类大佬/画师对象；友商游戏展台和艺人舞台不进入采购推荐。',
-  '业务共创：把 S/A 级对象发给项目组，让他们补"想聊什么"和"是否可授权"。',
-  '现场执行：每个 booth 至少沉淀一张名片/联系方式、一张陈列照片、一条报价或合作门槛。',
-];
+import AiWeeklyActionsPanel from '@/components/AiWeeklyActionsPanel';
 
 const SCORING_NOTES = [
   '只收录营销采购窗口：大佬、艺术家、画师、KOL/KOC、线下搭建、展陈、周边、推广执行供应商。',
@@ -33,7 +27,7 @@ function Panel({ title, items }: { title: string; items: string[] }) {
 export default function EntitySidePanel() {
   return (
     <aside className="space-y-4">
-      <Panel title="本周建议动作" items={WEEKLY_ACTIONS} />
+      <AiWeeklyActionsPanel />
       <Panel title="推荐评分口径" items={SCORING_NOTES} />
     </aside>
   );

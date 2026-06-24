@@ -36,5 +36,11 @@ export const aiApi = {
     });
     return res.data;
   },
+
+  /** 本周建议动作（AI 动态生成，按三类标注） */
+  weeklyActions: async (): Promise<IAiChatResult> => {
+    const res = await axiosForBackend({ url: '/api/ai/weekly-actions', method: 'POST' });
+    return res.data;
+  },
 };
 

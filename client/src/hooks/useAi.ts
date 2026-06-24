@@ -15,3 +15,10 @@ export function useAiChat() {
       aiApi.chat(params.message, params.history),
   });
 }
+
+/** 本周建议动作（AI 动态生成，按三类标注） */
+export function useWeeklyActions() {
+  return useMutation({
+    mutationFn: () => aiApi.weeklyActions(),
+  });
+}
