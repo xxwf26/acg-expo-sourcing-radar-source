@@ -18,7 +18,6 @@ import SourcesSection from './SourcesSection';
 import WorkflowSection from './WorkflowSection';
 import EntitySidePanel from './EntitySidePanel';
 import AiChatPanel from '@/components/AiChatPanel';
-import RadarScope from './RadarScope';
 import ChangePasswordModal from './ChangePasswordModal';
 import UserManageModal from './UserManageModal';
 import BackToTop from './BackToTop';
@@ -222,9 +221,6 @@ export default function RadarDashboardPage() {
               <h2 className="text-base font-bold leading-tight text-white sm:text-lg">
                 从“参加展会”升级成“全组可复用的机会雷达”
               </h2>
-            </div>
-            <div className="hidden h-16 w-16 shrink-0 md:block lg:h-20 lg:w-20">
-              <RadarScope />
             </div>
             {/* 移动端操作 */}
             <div className="flex shrink-0 items-center gap-2 lg:hidden">
