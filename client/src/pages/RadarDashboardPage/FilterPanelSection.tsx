@@ -184,12 +184,6 @@ export default function FilterPanelSection({
           </SelectContent>
         </Select>
       </Section>
-
-      <Section title="数据口径">
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          名单类信息以官方页面、展商官网、社媒主页为主；业务推荐由采购匹配度、建联可行性、品牌势能综合评分。
-        </p>
-      </Section>
     </div>
   );
 }
