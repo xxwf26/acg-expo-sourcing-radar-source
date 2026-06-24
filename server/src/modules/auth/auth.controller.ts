@@ -1,13 +1,22 @@
-import { Controller, Post, Put, Get, Body, UnauthorizedException, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, HttpException, HttpStatus, UnauthorizedException, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RateLimiter } from '../../common/rate-limiter';
 
 @Controller('/api/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly limiter: RateLimiter,
+  ) {}
 
   @Post('login')
-  async login(@Body() body: { username: string; password: string; rememberMe?: boolean }) {
+  async login(@Body() body: { username: string; password: string; rememberMe?: boolean }, @Request() req: any) {
+    // 按 IP 限流防暴力破解：5 次/分钟
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    if (!this.limiter.consume(`login:${ip}`, 5, 60_000)) {
+      throw new HttpException('登录尝试过于频繁，请稍后再试', HttpStatus.TOO_MANY_REQUESTS);
+    }
     const user = await this.authService.validateUser(body.username, body.password);
     if (!user) throw new UnauthorizedException('用户名或密码错误');
     return this.authService.login(user, body.rememberMe ?? false);

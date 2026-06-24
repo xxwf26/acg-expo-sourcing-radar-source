@@ -1,26 +1,13 @@
-import { Component, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Sparkles, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEntitySummary } from '@/hooks/useAi';
 import { toast } from 'sonner';
+import MarkdownBoundary from '@/components/MarkdownBoundary';
 
 interface AiPanelProps {
   entityId: string;
-}
-
-/** 渲染 AI 文本时的兜底：任何渲染异常都显示提示，绝不让整页白屏 */
-class MarkdownBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
-  state = { error: false };
-  static getDerivedStateFromError() {
-    return { error: true };
-  }
-  render() {
-    if (this.state.error) {
-      return <p className="text-sm text-muted-foreground">（AI 内容格式渲染失败，可点「重新生成」重试）</p>;
-    }
-    return this.props.children;
-  }
 }
 
 /**

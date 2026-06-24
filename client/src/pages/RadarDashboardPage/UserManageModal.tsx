@@ -131,6 +131,8 @@ export default function UserManageModal({
                       variant="outline"
                       size="sm"
                       className="shrink-0 text-destructive hover:bg-destructive/5"
+                      // 不可删除自己（后端也有护栏，前端先拦截）
+                      disabled={u.username === me?.username}
                       onClick={() => onDelete(u)}
                     >
                       <Trash2 className="size-3.5" />

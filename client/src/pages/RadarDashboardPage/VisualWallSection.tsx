@@ -18,6 +18,10 @@ function GalleryCard({ entity, visual }: { entity: IEntity; visual: IVisual }) {
           alt={`${entity.name} - ${visual.title}`}
           loading="lazy"
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            const el = e.currentTarget as HTMLImageElement;
+            el.style.opacity = '0.3';
+          }}
           className="aspect-[16/10] w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </a>

@@ -19,6 +19,10 @@ export const DRIZZLE_DATABASE = 'DRIZZLE_DATABASE';
           user: config.get<string>('DB_USER', 'root'),
           password: config.get<string>('DB_PASSWORD', ''),
           database: config.get<string>('DB_NAME', 'sourcing_radar'),
+          // utf8mb4 防 emoji/生僻字在 JSON 列被截断；限连接数
+          charset: 'utf8mb4',
+          connectionLimit: 10,
+          enableKeepAlive: true,
         });
         return drizzle(connection, { schema, mode: 'default' });
       },

@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef, useState, type ReactNode, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Sparkles, Send, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAiChat } from '@/hooks/useAi';
 import { toast } from 'sonner';
 import type { IAiChatMessage } from '@/api/ai';
+import MarkdownBoundary from '@/components/MarkdownBoundary';
 
 /** 持久化键：聊天记录存 localStorage，切视图/刷新不丢 */
 const STORAGE_KEY = 'aiChatMessages.v1';
@@ -18,20 +19,6 @@ function loadMessages(): IAiChatMessage[] {
     return Array.isArray(arr) ? arr.slice(-MAX_HISTORY) : [];
   } catch {
     return [];
-  }
-}
-
-/** 兜底：AI 文本渲染异常时显示提示，不让整页白屏 */
-class MarkdownBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
-  state = { error: false };
-  static getDerivedStateFromError() {
-    return { error: true };
-  }
-  render() {
-    if (this.state.error) {
-      return <p className="text-xs text-muted-foreground">（内容渲染失败，可清空重试）</p>;
-    }
-    return this.props.children;
   }
 }
 
@@ -55,10 +42,11 @@ export default function AiChatPanel() {
     }
   }, [messages]);
 
-  // 挂载时滚到底（从 localStorage 恢复的历史）
+  // 消息变化/loading 时滚到底（含挂载时从 localStorage 恢复的历史），无需手动 timer
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, []);
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight });
+  }, [messages, chat.isPending]);
 
   const send = (e: FormEvent) => {
     e.preventDefault();
@@ -74,8 +62,6 @@ export default function AiChatPanel() {
       {
         onSuccess: (res) => {
           setMessages((prev) => [...prev, { role: 'assistant', content: res.content }]);
-          // 滚到底
-          setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
         },
         onError: () => toast.error('AI 回复失败，请稍后重试'),
       },

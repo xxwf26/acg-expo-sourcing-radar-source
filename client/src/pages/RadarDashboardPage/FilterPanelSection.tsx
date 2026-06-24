@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -110,12 +111,25 @@ export default function FilterPanelSection({
     onChange({ ...filters, [key]: next });
   };
 
+  // 搜索本地草稿 + 180ms 防抖，避免每键触发整网格重渲染
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+  useEffect(() => {
+    setSearchDraft(filters.search);
+  }, [filters.search]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchDraft !== filters.search) onChange({ ...filters, search: searchDraft });
+    }, 180);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchDraft]);
+
   return (
     <div>
       <Section title="搜索">
         <Input
-          value={filters.search}
-          onChange={(e) => onChange({ ...filters, search: e.target.value })}
+          value={searchDraft}
+          onChange={(e) => setSearchDraft(e.target.value)}
           placeholder="搜展会、艺术家、供应商、标签"
           type="search"
         />

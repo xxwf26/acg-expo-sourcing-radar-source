@@ -34,6 +34,10 @@ export class EngagementService {
     if (data.owner !== undefined) setOnUpdate.owner = data.owner ?? null;
     if (data.note !== undefined) setOnUpdate.note = data.note ?? null;
     if (data.updatedBy !== undefined) setOnUpdate.updatedBy = data.updatedBy ?? null;
+    // 防止所有字段都 undefined 时生成空 SET 的非法 SQL：至少刷一下 updatedAt
+    if (Object.keys(setOnUpdate).length === 0) {
+      setOnUpdate.updatedAt = new Date();
+    }
 
     await this.db
       .insert(engagements)

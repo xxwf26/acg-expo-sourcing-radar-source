@@ -192,7 +192,16 @@ export default function EntityDetailModal({
                     <div className="text-[10px] text-muted-foreground">匹配分</div>
                   </div>
                   {canEdit && (
-                    <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="ml-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      // 进入编辑时从最新 entity 重建 form，避免后台 refetch 后编辑到旧数据
+                      onClick={() => {
+                        if (entity) setForm({ ...entity });
+                        setEditing(true);
+                      }}
+                      className="ml-1"
+                    >
                       <Pencil className="size-4" />
                       编辑
                     </Button>
@@ -239,7 +248,11 @@ export default function EntityDetailModal({
                       min={0}
                       max={100}
                       value={form.score ?? 0}
-                      onChange={(e) => set('score', Number(e.target.value))}
+                      onChange={(e) => {
+                        // 空输入允许暂存为 0，但 clamp 到 0-100，防 NaN/越界
+                        const n = Number(e.target.value);
+                        set('score', Number.isNaN(n) ? 0 : Math.max(0, Math.min(100, n)));
+                      }}
                     />
                   </Field>
                   <Field label="展位 / 位置线索">
@@ -423,9 +436,18 @@ export default function EntityDetailModal({
                 {cur.visuals && cur.visuals.length > 0 && (
                   <Field label="视觉预览">
                     <div className="grid grid-cols-2 gap-2">
-                      {cur.visuals.slice(0, 2).map((v) => (
-                        <a key={v.url} href={v.url} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-lg border">
-                          <img src={screenshotUrl(v.url)} alt={`${cur.name} - ${v.title}`} loading="lazy" referrerPolicy="no-referrer" className="h-32 w-full object-cover transition-transform group-hover:scale-105" />
+                      {cur.visuals.slice(0, 2).map((v, i) => (
+                        <a key={`${v.url}-${i}`} href={v.url} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-lg border">
+                          <img
+                            src={screenshotUrl(v.url)}
+                            alt={`${cur.name} - ${v.title}`}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                            className="h-32 w-full object-cover transition-transform group-hover:scale-105"
+                          />
                           <div className="p-2">
                             <p className="text-xs font-medium">{v.title}</p>
                             <p className="text-[11px] text-muted-foreground">{v.caption}</p>
@@ -439,8 +461,8 @@ export default function EntityDetailModal({
                 {cur.links && cur.links.length > 0 && (
                   <Field label="链接">
                     <div className="flex flex-wrap gap-2">
-                      {cur.links.map(([label, url]) => (
-                        <a key={url} href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-info hover:bg-accent">
+                      {cur.links.map(([label, url], i) => (
+                        <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-info hover:bg-accent">
                           {label}
                           <ExternalLink className="size-3" />
                         </a>

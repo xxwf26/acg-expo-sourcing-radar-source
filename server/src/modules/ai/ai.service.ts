@@ -78,7 +78,7 @@ export class AiService {
     const [engagement] = await this.db.select().from(engagements).where(eq(engagements.entityId, id));
 
     const { system, messages } = buildEntitySummaryPrompt({ entity, engagement: engagement ?? null });
-    const result = await this.llm.chat(system, messages);
+    const result = await this.callLlm(system, messages);
 
     return {
       scenario: 'entity-summary',
@@ -89,6 +89,15 @@ export class AiService {
     };
   }
 
+  /** 调 LLM 的统一出口：捕获异常转 503，避免裸 500 暴露内部错误 */
+  private async callLlm(system: string, messages: Array<{ role: 'user' | 'assistant'; content: string }>) {
+    try {
+      return await this.llm.chat(system, messages);
+    } catch (e: any) {
+      throw new ServiceUnavailableException(`AI 调用失败：${e?.message || '未知错误'}`);
+    }
+  }
+
   /** 全局聊天助手（带全库快照，可多轮） */
   async chat(message: string, history: ChatMessage[]): Promise<AiChatResult> {
     if (!this.llm.available) {
@@ -97,7 +106,7 @@ export class AiService {
     const snapshot = await this.buildDbSnapshot();
     const safeHistory = sanitizeHistory(history);
     const { system, messages } = buildChatPrompt({ snapshot, message, history: safeHistory });
-    const result = await this.llm.chat(system, messages);
+    const result = await this.callLlm(system, messages);
     return {
       scenario: 'chat',
       model: result.model,
@@ -106,24 +115,48 @@ export class AiService {
     };
   }
 
-  /** 本周建议动作（AI 动态生成，按 数据判定/规范/AI建议 三类标注） */
+  /** 本周建议动作（AI 动态生成，按 数据判定/规范/AI建议 三类标注）。
+   *  结果随库变化慢，做 10 分钟 TTL 缓存，省成本+提速。 */
+  private weeklyCache: { result: AiChatResult; exp: number } | null = null;
+  private readonly WEEKLY_TTL_MS = 10 * 60 * 1000;
+
   async weeklyActions(): Promise<AiChatResult> {
+    const now = Date.now();
+    if (this.weeklyCache && this.weeklyCache.exp > now) {
+      return this.weeklyCache.result;
+    }
     if (!this.llm.available) {
       throw new ServiceUnavailableException('AI 服务未配置（服务端缺少 AI_API_KEY）');
     }
     const snapshot = await this.buildDbSnapshot();
     const { system, messages } = buildWeeklyActionsPrompt(snapshot);
-    const result = await this.llm.chat(system, messages);
-    return {
+    const result = await this.callLlm(system, messages);
+    const out: AiChatResult = {
       scenario: 'weekly-actions',
       model: result.model,
       content: result.content,
       usage: result.usage,
     };
+    this.weeklyCache = { result: out, exp: now + this.WEEKLY_TTL_MS };
+    return out;
   }
 
-  /** 全库快照：喂给聊天的上下文（控制字段粒度，避免 token 爆炸） */
+  /** 全库快照：喂给聊天的上下文（控制字段粒度，避免 token 爆炸）。
+   *  多轮对话中数据不变，做 60 秒缓存省 DB 查询。 */
+  private snapshotCache: { data: Record<string, any>; exp: number } | null = null;
+  private readonly SNAPSHOT_TTL_MS = 60_000;
+
   private async buildDbSnapshot(): Promise<Record<string, any>> {
+    const now = Date.now();
+    if (this.snapshotCache && this.snapshotCache.exp > now) {
+      return this.snapshotCache.data;
+    }
+    const data = await this.buildDbSnapshotRaw();
+    this.snapshotCache = { data, exp: now + this.SNAPSHOT_TTL_MS };
+    return data;
+  }
+
+  private async buildDbSnapshotRaw(): Promise<Record<string, any>> {
     const allEvents = await this.db
       .select({
         id: events.id,

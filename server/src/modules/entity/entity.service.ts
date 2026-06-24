@@ -29,7 +29,9 @@ export class EntityService {
       conditions.push(inArray(entities.priority, filter.priority));
     }
     if (filter.keyword) {
-      const kw = `%${filter.keyword}%`;
+      // 转义 LIKE 通配符，避免用户输入 % _ 被当通配符匹配全表
+      const esc = filter.keyword.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+      const kw = `%${esc}%`;
       conditions.push(
         or(
           like(entities.name, kw),

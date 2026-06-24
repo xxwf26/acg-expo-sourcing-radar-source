@@ -3,6 +3,18 @@ import type { Request, Response } from 'express';
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 
+// 启动时读一次 index.html 缓存到内存，避免每个 SPA 请求都同步读盘
+let cachedIndex: string | null = null;
+function getIndexHtml(): string | null {
+  if (cachedIndex !== null) return cachedIndex;
+  const indexPath = join(process.cwd(), '..', 'client', 'dist', 'index.html');
+  if (existsSync(indexPath)) {
+    cachedIndex = readFileSync(indexPath, 'utf-8');
+    return cachedIndex;
+  }
+  return null;
+}
+
 @Controller()
 export class ViewController {
   @Get(['/', '/*'])
@@ -16,9 +28,11 @@ export class ViewController {
       });
       return;
     }
-    const indexPath = join(process.cwd(), '..', 'client', 'dist', 'index.html');
-    if (existsSync(indexPath)) {
-      res.send(readFileSync(indexPath, 'utf-8'));
+    const html = getIndexHtml();
+    if (html) {
+      // SPA 入口可被浏览器缓存（带 hash 的静态资源由 useStaticAssets 托管）
+      res.set('Cache-Control', 'no-cache');
+      res.type('html').send(html);
     } else {
       res.send(`<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>ACG展会采购寻源雷达</title></head>
         <body><div id="root"></div>

@@ -73,7 +73,7 @@ export default function RadarDashboardPage() {
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [view, setView] = useState<ViewKey>('entities');
-  const [activeEntity, setActiveEntity] = useState<IEntity | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [creatingEntity, setCreatingEntity] = useState(false);
 
@@ -101,6 +101,12 @@ export default function RadarDashboardPage() {
 
   // 可见对象 = 未被排除（对应原 entities - excludedEntityIds）
   const visibleEntities = useMemo(() => allEntities.filter((e) => !e.excluded), [allEntities]);
+
+  // 当前打开的对象：从最新列表派生，编辑保存后自动同步，避免显示旧数据
+  const activeEntity = useMemo(
+    () => (activeId ? allEntities.find((e) => e.id === activeId) ?? null : null),
+    [activeId, allEntities],
+  );
 
   // 建联记录映射
   const engagementMap = useMemo(() => {
@@ -137,13 +143,13 @@ export default function RadarDashboardPage() {
 
   const openEntity = (entity: IEntity) => {
     setCreatingEntity(false);
-    setActiveEntity(entity);
+    setActiveId(entity.id);
     setModalOpen(true);
   };
 
   const openCreateEntity = () => {
     setCreatingEntity(true);
-    setActiveEntity(null);
+    setActiveId(null);
     setModalOpen(true);
   };
 

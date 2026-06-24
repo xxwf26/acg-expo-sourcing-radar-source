@@ -27,67 +27,70 @@ async function main() {
   });
   const orm = drizzle(connection, { schema, mode: 'default' });
 
-  // 清空（保留建联状态 engagements，避免覆盖人工录入）
-  await orm.delete(schema.entities);
-  await orm.delete(schema.events);
-  await orm.delete(schema.sources);
+  // 清空 + 插入包进同一事务，中途失败可回滚，避免清空后没灌满
+  await orm.transaction(async (tx) => {
+    // 清空（保留建联状态 engagements，避免覆盖人工录入）
+    await tx.delete(schema.entities);
+    await tx.delete(schema.events);
+    await tx.delete(schema.sources);
 
-  // events
-  const eventRows = (db.events || []).map((e: any, i: number) => ({
-    id: e.id,
-    name: e.name,
-    short: e.short,
-    date: e.date ?? null,
-    month: e.month ?? null,
-    city: e.city ?? null,
-    region: e.region ?? null,
-    venue: e.venue ?? null,
-    status: e.status ?? null,
-    tags: e.tags ?? [],
-    note: e.note ?? null,
-    links: e.links ?? [],
-    sortOrder: i,
-  }));
-  if (eventRows.length) await orm.insert(schema.events).values(eventRows);
+    // events
+    const eventRows = (db.events || []).map((e: any, i: number) => ({
+      id: e.id,
+      name: e.name,
+      short: e.short,
+      date: e.date ?? null,
+      month: e.month ?? null,
+      city: e.city ?? null,
+      region: e.region ?? null,
+      venue: e.venue ?? null,
+      status: e.status ?? null,
+      tags: e.tags ?? [],
+      note: e.note ?? null,
+      links: e.links ?? [],
+      sortOrder: i,
+    }));
+    if (eventRows.length) await tx.insert(schema.events).values(eventRows);
 
-  // entities
-  const entityRows = (db.entities || []).map((e: any) => ({
-    id: e.id,
-    name: e.name,
-    type: e.type,
-    priority: e.priority,
-    score: e.score ?? 0,
-    events: e.events ?? [],
-    region: e.region ?? null,
-    booth: e.booth ?? null,
-    followerScale: e.followerScale ?? null,
-    followerTier: e.followerTier ?? null,
-    followerNote: e.followerNote ?? null,
-    tags: e.tags ?? [],
-    angles: e.angles ?? [],
-    reason: e.reason ?? null,
-    cases: e.cases ?? [],
-    visuals: e.visuals ?? [],
-    links: e.links ?? [],
-    excluded: excluded.has(e.id),
-  }));
-  if (entityRows.length) await orm.insert(schema.entities).values(entityRows);
+    // entities
+    const entityRows = (db.entities || []).map((e: any) => ({
+      id: e.id,
+      name: e.name,
+      type: e.type,
+      priority: e.priority,
+      score: e.score ?? 0,
+      events: e.events ?? [],
+      region: e.region ?? null,
+      booth: e.booth ?? null,
+      followerScale: e.followerScale ?? null,
+      followerTier: e.followerTier ?? null,
+      followerNote: e.followerNote ?? null,
+      tags: e.tags ?? [],
+      angles: e.angles ?? [],
+      reason: e.reason ?? null,
+      cases: e.cases ?? [],
+      visuals: e.visuals ?? [],
+      links: e.links ?? [],
+      excluded: excluded.has(e.id),
+    }));
+    if (entityRows.length) await tx.insert(schema.entities).values(entityRows);
 
-  // sources（原数据无 id，用 name 派生稳定 id，便于重复 seed）
-  const sourceRows = (db.sources || []).map((s: any, i: number) => ({
-    id: `src-${i + 1}`,
-    name: s.name,
-    cadence: s.cadence ?? null,
-    fields: s.fields ?? null,
-    links: s.links ?? [],
-    sortOrder: i,
-  }));
-  if (sourceRows.length) await orm.insert(schema.sources).values(sourceRows);
+    // sources（原数据无 id，用 name 派生稳定 id，便于重复 seed）
+    const sourceRows = (db.sources || []).map((s: any, i: number) => ({
+      id: `src-${i + 1}`,
+      name: s.name,
+      cadence: s.cadence ?? null,
+      fields: s.fields ?? null,
+      links: s.links ?? [],
+      sortOrder: i,
+    }));
+    if (sourceRows.length) await tx.insert(schema.sources).values(sourceRows);
 
-  const excludedCount = entityRows.filter((r: any) => r.excluded).length;
-  console.log(
-    `✓ seed 完成：events=${eventRows.length}, entities=${entityRows.length}（excluded=${excludedCount}）, sources=${sourceRows.length}`,
-  );
+    const excludedCount = entityRows.filter((r: any) => r.excluded).length;
+    console.log(
+      `✓ seed 完成：events=${eventRows.length}, entities=${entityRows.length}（excluded=${excludedCount}）, sources=${sourceRows.length}`,
+    );
+  });
   await connection.end();
 }
 

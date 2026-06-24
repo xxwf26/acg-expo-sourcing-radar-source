@@ -6,8 +6,9 @@ import { sourceApi } from '@/api/source';
 import type { IEntity, IEvent, ISource } from '@/api/types';
 
 // 提取后端返回的错误信息（引用保护/校验失败等）
-function errMsg(e: any, fallback: string): string {
-  return e?.response?.data?.message || fallback;
+function errMsg(e: unknown, fallback: string): string {
+  const err = e as { response?: { data?: { message?: string } } };
+  return err?.response?.data?.message || fallback;
 }
 
 // ---------------- entities ----------------
