@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import ChipEditor from '@/components/ChipEditor';
 import PairListEditor from '@/components/PairListEditor';
+import AiPanel from '@/components/AiPanel';
 import { cn } from '@/lib/utils';
 import {
   PRIORITY_STYLE,
@@ -488,6 +489,9 @@ export default function EntityDetailModal({
                     </div>
                   )}
                 </div>
+
+                {/* AI 总结 + 建议（查看态；登录用户均可点，viewer 亦可） */}
+                {entity && <AiPanel entityId={entity.id} />}
               </>
             )}
           </div>

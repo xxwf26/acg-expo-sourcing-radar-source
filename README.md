@@ -8,7 +8,7 @@
 
 - **后端**：NestJS 10 + Drizzle ORM + MySQL 8
 - **前端**：React 19 + TypeScript + Vite + Tailwind 4 + shadcn/ui + react-query
-- **端口**：后端 `3002`，前端 dev `5175`（避开姐妹项目画师库的 3001/5174）
+- **端口**：后端 `4000`，前端 dev `5175`（避开姐妹项目画师库的 3001/5174）
 
 ## 目录结构
 
@@ -76,8 +76,8 @@ npm run db:seed-users   # 创建 admin / viewer 默认账号
 
 ```bash
 # 分别启动（推荐，端口冲突时易排查）
-npm run dev:server     # 后端 :3002（tsc -w + node --watch）
-npm run dev:client     # 前端 :5175（vite，/api 代理到 3002）
+npm run dev:server     # 后端 :4000（tsc -w + node --watch）
+npm run dev:client     # 前端 :5175（vite，/api 代理到 4000）
 
 # 或并行启动
 npm run dev
@@ -92,7 +92,7 @@ npm run build          # 构建前端到 client/dist + 编译后端到 server/di
 npm run start          # 只起后端，NestJS 托管前端静态资源 + SPA fallback
 ```
 
-访问 http://localhost:3002 （前端、API 同源）
+访问 http://localhost:4000 （前端、API 同源）
 
 ## API
 

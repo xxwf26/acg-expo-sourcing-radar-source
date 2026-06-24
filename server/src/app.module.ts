@@ -6,6 +6,7 @@ import { EventModule } from './modules/event/event.module';
 import { EntityModule } from './modules/entity/entity.module';
 import { SourceModule } from './modules/source/source.module';
 import { EngagementModule } from './modules/engagement/engagement.module';
+import { AiModule } from './modules/ai/ai.module';
 import { ViewModule } from './modules/view/view.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { ViewModule } from './modules/view/view.module';
     EntityModule,
     SourceModule,
     EngagementModule,
+    AiModule,
     // ViewModule 必须最后注册（catch-all 路由）
     ViewModule,
   ],
