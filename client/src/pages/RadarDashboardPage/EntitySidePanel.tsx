@@ -1,4 +1,5 @@
 // 建联对象视图右侧固定面板（移植原 index.html side-stack 内容）
+import AiChatPanel from '@/components/AiChatPanel';
 
 const WEEKLY_ACTIONS = [
   'AX 2026：先锁定 Animon Life、ACG Go Anime、Aitai Kuji、AmiAmi、ACRO TOKYO。',
@@ -33,6 +34,7 @@ function Panel({ title, items }: { title: string; items: string[] }) {
 export default function EntitySidePanel() {
   return (
     <aside className="space-y-4">
+      <AiChatPanel />
       <Panel title="本周建议动作" items={WEEKLY_ACTIONS} />
       <Panel title="推荐评分口径" items={SCORING_NOTES} />
     </aside>

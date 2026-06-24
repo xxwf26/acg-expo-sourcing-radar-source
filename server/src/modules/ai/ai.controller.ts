@@ -1,6 +1,7 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AiService } from './ai.service';
+import { AiService, type ChatMessage } from './ai.service';
+import { ChatDto } from './ai.dto';
 
 /**
  * AI 增强接口。
@@ -17,4 +18,12 @@ export class AiController {
   async summarizeEntity(@Param('id') id: string) {
     return this.aiService.summarizeEntity(id);
   }
+
+  /** 全局聊天助手（带全库快照，可多轮） */
+  @Post('chat')
+  async chat(@Body() dto: ChatDto) {
+    const history: ChatMessage[] = (dto.history ?? []).map((h) => ({ role: h.role, content: h.content }));
+    return this.aiService.chat(dto.message, history);
+  }
 }
+

@@ -73,3 +73,41 @@ export function buildEntitySummaryPrompt(input: EntitySummaryInput): PromptPaylo
 
   return { system, messages: [{ role: 'user', content: user }] };
 }
+
+/** 输入：全库快照 + 当前提问 + 历史对话 */
+export interface ChatPromptInput {
+  snapshot: Record<string, any>;
+  message: string;
+  history: Array<{ role: 'user' | 'assistant'; content: string }>;
+}
+
+/** 场景：全局聊天助手（带全库上下文，可多轮） */
+export function buildChatPrompt(input: ChatPromptInput): PromptPayload {
+  const { snapshot, message, history } = input;
+
+  const system = `${SYSTEM_BASE}
+
+## 本次任务
+你是该雷达系统的全局分析助手，已注入「全库快照」（展会 / 建联对象 / 建联状态 / 信息源）。用户可能让你：
+- 总结整个数据库现状（如：本周重点对象、缺口、优先级分布）
+- 给采购/建联建议（该重点跟进谁、哪些搁置、行动排序）
+- 回答关于具体对象/展会的问题
+
+要求：
+- 回答基于快照数据，不编造；信息不足时直说。
+- 用简体中文 Markdown，条理清晰、可执行，避免冗长。
+- 对象名首次出现时带类型/优先级便于定位。
+
+## 全库快照
+\`\`\`json
+${JSON.stringify(snapshot, null, 2)}
+\`\`\``;
+
+  // 拼接历史 + 当前提问为 Anthropic messages（user/assistant 交替）
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
+    ...history,
+    { role: 'user', content: message },
+  ];
+
+  return { system, messages };
+}
