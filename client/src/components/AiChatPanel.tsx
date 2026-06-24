@@ -1,4 +1,4 @@
-import { Component, useRef, useState, type ReactNode, type FormEvent } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Sparkles, Send, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,20 @@ import { Input } from '@/components/ui/input';
 import { useAiChat } from '@/hooks/useAi';
 import { toast } from 'sonner';
 import type { IAiChatMessage } from '@/api/ai';
+
+/** 持久化键：聊天记录存 localStorage，切视图/刷新不丢 */
+const STORAGE_KEY = 'aiChatMessages.v1';
+const MAX_HISTORY = 30; // 限制条数，避免 localStorage 膨胀 + 上下文过长
+
+function loadMessages(): IAiChatMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.slice(-MAX_HISTORY) : [];
+  } catch {
+    return [];
+  }
+}
 
 /** 兜底：AI 文本渲染异常时显示提示，不让整页白屏 */
 class MarkdownBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
@@ -27,10 +41,24 @@ class MarkdownBoundary extends Component<{ children: ReactNode }, { error: boole
  * 历史维护在组件本地；每次发送把历史 + 当前消息一起发给后端。
  */
 export default function AiChatPanel() {
-  const [messages, setMessages] = useState<IAiChatMessage[]>([]);
+  const [messages, setMessages] = useState<IAiChatMessage[]>(loadMessages);
   const [input, setInput] = useState('');
   const chat = useAiChat();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 持久化到 localStorage，切视图/刷新都不丢
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_HISTORY)));
+    } catch {
+      // 忽略配额异常
+    }
+  }, [messages]);
+
+  // 挂载时滚到底（从 localStorage 恢复的历史）
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, []);
 
   const send = (e: FormEvent) => {
     e.preventDefault();
@@ -56,6 +84,11 @@ export default function AiChatPanel() {
 
   const clear = () => {
     setMessages([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   };
 
   return (
