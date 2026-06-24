@@ -1,12 +1,21 @@
-import { Controller, Get, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Get, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 
 @Controller()
 export class ViewController {
   @Get(['/', '/*'])
-  async render(@Res() res: Response) {
+  async render(@Req() req: Request, @Res() res: Response) {
+    // 未匹配到任何 API 控制器的 /api/* 请求，返回 404 JSON 而非首页 HTML
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({
+        statusCode: 404,
+        error: 'Not Found',
+        message: `Cannot ${req.method} ${req.path}`,
+      });
+      return;
+    }
     const indexPath = join(process.cwd(), '..', 'client', 'dist', 'index.html');
     if (existsSync(indexPath)) {
       res.send(readFileSync(indexPath, 'utf-8'));

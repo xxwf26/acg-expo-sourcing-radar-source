@@ -466,12 +466,12 @@ export default function EntityDetailModal({
                           </Select>
                         </Field>
                         <Field label="负责人">
-                          <Input value={owner} onChange={(e) => setOwner(e.target.value)} onBlur={() => saveEngagement({ owner })} placeholder="采购/业务姓名" />
+                          <Input value={owner} onChange={(e) => setOwner(e.target.value)} onBlur={() => { if (owner !== (engagement?.owner || '')) saveEngagement({ owner }); }} placeholder="采购/业务姓名" />
                         </Field>
                       </div>
                       <div className="mt-3">
                         <Field label="备注">
-                          <Textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={() => saveEngagement({ note })} rows={3} placeholder="可记录 booth 拜访结果、联系人、报价、风险、业务反馈" />
+                          <Textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={() => { if (note !== (engagement?.note || '')) saveEngagement({ note }); }} rows={3} placeholder="可记录 booth 拜访结果、联系人、报价、风险、业务反馈" />
                         </Field>
                       </div>
                       <p className="mt-2 text-[11px] text-muted-foreground">状态即改即存，负责人/备注失焦保存。多人协作可见。</p>
