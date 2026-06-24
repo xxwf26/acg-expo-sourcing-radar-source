@@ -1,4 +1,4 @@
-import { Component, useState, type ReactNode } from 'react';
+import { Component, useEffect, useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Sparkles, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,13 @@ class MarkdownBoundary extends Component<{ children: ReactNode }, { error: boole
 export default function AiPanel({ entityId }: AiPanelProps) {
   const summary = useEntitySummary();
   const [shown, setShown] = useState(false);
+
+  // 切换对象时重置：避免显示上一个对象的旧总结
+  useEffect(() => {
+    setShown(false);
+    summary.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId]);
 
   const handleGenerate = () => {
     setShown(true);
@@ -94,7 +101,7 @@ export default function AiPanel({ entityId }: AiPanelProps) {
           </MarkdownBoundary>
           <p className="mt-3 text-[11px] text-muted-foreground">
             模型：{result.model}
-            {result.usage?.completion_tokens ? ` · 输出 ${result.usage.completion_tokens} tokens` : ''}
+            {result.usage?.output_tokens ? ` · 输出 ${result.usage.output_tokens} tokens` : ''}
           </p>
         </div>
       )}

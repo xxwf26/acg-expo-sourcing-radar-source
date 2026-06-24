@@ -26,6 +26,37 @@ export interface ChatMessage {
 }
 
 /**
+ * 清洗聊天历史，保证符合 Anthropic Messages 约定：
+ * - 必须 user 开头（localStorage 截断可能把开头截成 assistant 开头）
+ * - user/assistant 严格交替（丢弃连续同角色或非法角色的项）
+ * - 丢弃空内容
+ */
+function sanitizeHistory(history: ChatMessage[]): ChatMessage[] {
+  const cleaned = (history ?? []).filter(
+    (m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim(),
+  );
+  // 丢弃开头非 user 的消息，直到遇到 user
+  while (cleaned.length > 0 && cleaned[0].role !== 'user') {
+    cleaned.shift();
+  }
+  // 严格交替：遇到连续同角色则跳过
+  const result: ChatMessage[] = [];
+  let expect: 'user' | 'assistant' = 'user';
+  for (const m of cleaned) {
+    if (m.role === expect) {
+      result.push(m);
+      expect = expect === 'user' ? 'assistant' : 'user';
+    }
+    // 不符合预期的角色直接丢弃，保持后续交替
+  }
+  // 末尾若停留在 user（等 assistant 回复但没存上），补一个空 assistant 占位避免末尾 user+新 user 连续
+  if (result.length > 0 && result[result.length - 1].role === 'user') {
+    result.push({ role: 'assistant', content: '（未收到回复）' });
+  }
+  return result;
+}
+
+/**
  * AI 编排层：取数 → 组 prompt → 调用 LlmClient → 统一返回结构。
  * 取数直接查 Drizzle（EntityModule 未导出 EntityService，避免跨模块耦合）。
  */
@@ -64,7 +95,8 @@ export class AiService {
       throw new ServiceUnavailableException('AI 服务未配置（服务端缺少 AI_API_KEY）');
     }
     const snapshot = await this.buildDbSnapshot();
-    const { system, messages } = buildChatPrompt({ snapshot, message, history });
+    const safeHistory = sanitizeHistory(history);
+    const { system, messages } = buildChatPrompt({ snapshot, message, history: safeHistory });
     const result = await this.llm.chat(system, messages);
     return {
       scenario: 'chat',
