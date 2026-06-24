@@ -17,6 +17,7 @@ import EventCalendarSection from './EventCalendarSection';
 import SourcesSection from './SourcesSection';
 import WorkflowSection from './WorkflowSection';
 import EntitySidePanel from './EntitySidePanel';
+import AiChatPanel from '@/components/AiChatPanel';
 import RadarScope from './RadarScope';
 import ChangePasswordModal from './ChangePasswordModal';
 import UserManageModal from './UserManageModal';
@@ -166,6 +167,10 @@ export default function RadarDashboardPage() {
             <h1 className="text-[15px] font-bold leading-tight">采购寻源建联雷达</h1>
             <p className="mt-0.5 text-[11px] text-muted-foreground">游戏 / ACG / 美术展会机会池</p>
           </div>
+        </div>
+        {/* AI 全库助手（全局，每个视图可见） */}
+        <div className="mb-4">
+          <AiChatPanel />
         </div>
         <div className="flex-1">{filterPanel}</div>
 
