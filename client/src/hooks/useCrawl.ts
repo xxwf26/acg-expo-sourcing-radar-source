@@ -39,12 +39,24 @@ export function useCandidateCounts() {
   });
 }
 
+/** 近期抓取批次历史。有进行中批次时自动轮询刷新。 */
+export function useCrawlRuns() {
+  return useQuery({
+    queryKey: ['crawl-runs'],
+    queryFn: () => crawlApi.getRuns(),
+    staleTime: 10 * 1000,
+    refetchInterval: (query) =>
+      (query.state.data?.list || []).some((r) => r.status === 'running') ? 5000 : false,
+  });
+}
+
 /** 抓取 + 复核动作 mutations */
 export function useCrawlMutations() {
   const qc = useQueryClient();
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['candidates'] });
     qc.invalidateQueries({ queryKey: ['candidate-counts'] });
+    qc.invalidateQueries({ queryKey: ['crawl-runs'] });
     qc.invalidateQueries({ queryKey: ['sources'] });
   };
 

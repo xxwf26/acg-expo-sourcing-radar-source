@@ -46,6 +46,12 @@ export class CrawlController {
     return this.crawl.getRun(runId);
   }
 
+  /** 近期抓取批次历史 */
+  @Get('crawl/runs')
+  async listRuns() {
+    return this.crawl.listRuns();
+  }
+
   /** 候选列表（?status=pending|promoted|merged|rejected|all） */
   @Get('candidates')
   async list(@Query('status') status?: string) {

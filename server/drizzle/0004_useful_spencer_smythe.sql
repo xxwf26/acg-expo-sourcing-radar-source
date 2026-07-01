@@ -1,0 +1,1 @@
+ALTER TABLE `candidates` ADD `activity_time` varchar(255);

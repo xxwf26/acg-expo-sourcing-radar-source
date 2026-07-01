@@ -107,6 +107,7 @@ export class CrawlService implements OnModuleDestroy {
           type: c.type ?? 'creatorKol',
           region: c.region ?? src.eventId ?? null,
           booth: c.booth ?? null,
+          activityTime: c.activityTime ?? null,
           followerScale: c.followerScale ?? null,
           reason: c.reason ?? null,
           rawSnippet: c.rawSnippet ?? null,
@@ -156,6 +157,26 @@ export class CrawlService implements OnModuleDestroy {
       .where(eq(crawlRuns.id, runId));
     if (!run) throw new NotFoundException('抓取记录不存在');
     return run;
+  }
+
+  /** 近期抓取批次列表（历史/进度视图用），带信息源名称 */
+  async listRuns(limit = 30) {
+    const runs = await this.db
+      .select({
+        id: crawlRuns.id,
+        sourceId: crawlRuns.sourceId,
+        status: crawlRuns.status,
+        extractedCount: crawlRuns.extractedCount,
+        error: crawlRuns.error,
+        startedAt: crawlRuns.startedAt,
+        finishedAt: crawlRuns.finishedAt,
+      })
+      .from(crawlRuns)
+      .orderBy(desc(crawlRuns.startedAt))
+      .limit(limit);
+    const srcMap = new Map((await this.db.select({ id: sources.id, name: sources.name }).from(sources)).map((s) => [s.id, s.name]));
+    const list = runs.map((r) => ({ ...r, sourceName: srcMap.get(r.sourceId) ?? '(已删除的源)' }));
+    return { list, total: list.length };
   }
 
   /** 触发全部启用源（各自异步后台跑） */

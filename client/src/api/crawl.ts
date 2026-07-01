@@ -3,6 +3,7 @@ import type {
   ICandidate,
   ICandidateCounts,
   ICrawlRun,
+  ICrawlRunListItem,
   ICrawlRunResult,
   IListResponse,
   IPromotePayload,
@@ -22,6 +23,11 @@ export const crawlApi = {
   /** 查抓取批次状态（轮询用） */
   getRun: async (runId: string): Promise<ICrawlRun> => {
     const res = await axiosForBackend({ url: `/api/crawl/run/${runId}`, method: 'GET' });
+    return res.data;
+  },
+  /** 近期抓取批次历史 */
+  getRuns: async (): Promise<IListResponse<ICrawlRunListItem>> => {
+    const res = await axiosForBackend({ url: '/api/crawl/runs', method: 'GET' });
     return res.data;
   },
   /** 候选列表 */

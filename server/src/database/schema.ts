@@ -136,6 +136,8 @@ export const candidates = mysqlTable(
     type: varchar('type', { length: 32 }).default('creatorKol').notNull(),
     region: varchar('region', { length: 128 }),
     booth: varchar('booth', { length: 255 }),
+    /** 活动/到场时段（如签售场次、现场时间），名单有则抽，无则空 */
+    activityTime: varchar('activity_time', { length: 255 }),
     followerScale: varchar('follower_scale', { length: 255 }),
     links: json('links').$type<LinkPair[]>(),
     reason: text('reason'),

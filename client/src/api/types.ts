@@ -73,6 +73,7 @@ export interface ICandidate {
   type: EntityType;
   region: string | null;
   booth: string | null;
+  activityTime: string | null;
   followerScale: string | null;
   links: LinkPair[] | null;
   reason: string | null;
@@ -124,6 +125,11 @@ export interface ICrawlRun {
   error: string | null;
   startedAt: string;
   finishedAt: string | null;
+}
+
+/** 抓取历史列表项（带信息源名） */
+export interface ICrawlRunListItem extends ICrawlRun {
+  sourceName: string;
 }
 
 export interface IEngagement {

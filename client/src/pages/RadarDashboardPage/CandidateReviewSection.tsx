@@ -19,8 +19,9 @@ import {
 import { cn } from '@/lib/utils';
 import { TYPE_LABELS, TYPE_OPTIONS } from '@/lib/filterConfig';
 import { useCandidates, useCandidateCounts, useCrawlMutations } from '@/hooks/useCrawl';
+import CrawlHistoryPanel from '@/components/CrawlHistoryPanel';
 import type { ICandidate, IEntity, IPromotePayload, Priority, EntityType } from '@/api/types';
-import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles } from 'lucide-react';
+import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock } from 'lucide-react';
 
 const STATUS_TABS: { key: string; label: string }[] = [
   { key: 'pending', label: '待复核' },
@@ -220,6 +221,9 @@ function CandidateCard({
             {c.booth && (
               <span className="flex items-center gap-1"><MapPin className="size-3" />{c.booth}</span>
             )}
+            {c.activityTime && (
+              <span className="flex items-center gap-1"><Clock className="size-3" />{c.activityTime}</span>
+            )}
             {c.region && <span>{c.region}</span>}
             {c.followerScale && <span>粉丝：{c.followerScale}</span>}
           </div>
@@ -288,6 +292,8 @@ export default function CandidateReviewSection({
 
   return (
     <div className="space-y-4">
+      <CrawlHistoryPanel />
+
       {/* 状态分段 + 计数 */}
       <div className="flex flex-wrap items-center gap-2">
         {STATUS_TABS.map((t) => {
