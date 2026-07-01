@@ -21,6 +21,7 @@ import {
 import ChipEditor from '@/components/ChipEditor';
 import PairListEditor from '@/components/PairListEditor';
 import AiPanel from '@/components/AiPanel';
+import ContactFinder from '@/components/ContactFinder';
 import { cn } from '@/lib/utils';
 import {
   PRIORITY_STYLE,
@@ -512,8 +513,13 @@ export default function EntityDetailModal({
                   )}
                 </div>
 
-                {/* AI 总结 + 建议（查看态；登录用户均可点，viewer 亦可） */}
-                {entity && <AiPanel entityId={entity.id} />}
+                {/* AI 总结 + 半自动找联系方式（查看态；登录用户均可点，viewer 亦可） */}
+                {entity && (
+                  <div className="space-y-3">
+                    <AiPanel entityId={entity.id} />
+                    <ContactFinder name={entity.name} region={entity.region} />
+                  </div>
+                )}
               </>
             )}
           </div>

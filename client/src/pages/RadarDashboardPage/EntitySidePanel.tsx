@@ -1,5 +1,5 @@
 // 建联对象视图右侧固定面板（移植原 index.html side-stack 内容）
-import AiWeeklyActionsPanel from '@/components/AiWeeklyActionsPanel';
+// 注：「本周建议动作」面板按会议纪要要求已移除，AiWeeklyActionsPanel 组件保留备用。
 
 const SCORING_NOTES = [
   '只收录营销采购窗口：大佬、艺术家、画师、KOL/KOC、线下搭建、展陈、周边、推广执行供应商。',
@@ -27,7 +27,6 @@ function Panel({ title, items }: { title: string; items: string[] }) {
 export default function EntitySidePanel() {
   return (
     <aside className="space-y-4">
-      <AiWeeklyActionsPanel />
       <Panel title="推荐评分口径" items={SCORING_NOTES} />
     </aside>
   );

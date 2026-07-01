@@ -8,6 +8,7 @@ import { EntityModule } from './modules/entity/entity.module';
 import { SourceModule } from './modules/source/source.module';
 import { EngagementModule } from './modules/engagement/engagement.module';
 import { AiModule } from './modules/ai/ai.module';
+import { CrawlModule } from './modules/crawl/crawl.module';
 import { UserModule } from './modules/user/user.module';
 import { ViewModule } from './modules/view/view.module';
 
@@ -22,6 +23,7 @@ import { ViewModule } from './modules/view/view.module';
     SourceModule,
     EngagementModule,
     AiModule,
+    CrawlModule,
     UserModule,
     // ViewModule 必须最后注册（catch-all 路由）
     ViewModule,

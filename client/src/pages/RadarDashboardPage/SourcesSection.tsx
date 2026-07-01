@@ -1,6 +1,8 @@
-import { ExternalLink, Plus, Pencil } from 'lucide-react';
+import { ExternalLink, Plus, Pencil, RefreshCw, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useCrawlMutations } from '@/hooks/useCrawl';
 import type { ISource } from '@/api/types';
 
 // done=true 为系统已实现的能力；其余为路线图设想（界面标「规划中」，避免被误读为现有能力）。
@@ -76,47 +78,95 @@ export default function SourcesSection({
   onCreate?: () => void;
   onEdit?: (source: ISource) => void;
 }) {
+  const { run, runAll } = useCrawlMutations();
+  const enabledCount = sources.filter((s) => s.enabled && s.url).length;
+
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-3">
         {canEdit && (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {enabledCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => runAll.mutate()}
+                disabled={runAll.isPending || run.isPending}
+              >
+                <Zap className={cn('size-4', runAll.isPending && 'animate-pulse')} />
+                {runAll.isPending ? '抓取中…' : `一键抓取（${enabledCount}）`}
+              </Button>
+            )}
             <Button size="sm" onClick={onCreate}>
               <Plus className="size-4" />
               新增信息源
             </Button>
           </div>
         )}
-        {sources.map((source) => (
-          <div key={source.id} className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-sm font-bold">{source.name}</h3>
-              {canEdit && (
-                <Button variant="ghost" size="sm" onClick={() => onEdit?.(source)} className="shrink-0">
-                  <Pencil className="size-4" />
-                </Button>
+        {sources.map((source) => {
+          const crawlable = !!source.url;
+          const running = run.isPending && run.variables === source.id;
+          return (
+            <div key={source.id} className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-bold">{source.name}</h3>
+                  {source.enabled && crawlable && (
+                    <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700">已启用抓取</Badge>
+                  )}
+                  {source.strategy && source.strategy !== 'static' && (
+                    <Badge variant="secondary" className="font-normal">{source.strategy}</Badge>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {canEdit && crawlable && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => run.mutate(source.id)}
+                      disabled={run.isPending || runAll.isPending}
+                      className="h-8 px-2 text-xs"
+                      title="抓取名单并由 AI 抽取候选（browser 策略较慢，约几分钟，请勿关闭页面）"
+                    >
+                      <RefreshCw className={cn('size-3.5', running && 'animate-spin')} />
+                      {running ? '抓取中…' : '立即抓取'}
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button variant="ghost" size="sm" onClick={() => onEdit?.(source)} className="shrink-0">
+                      <Pencil className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">监控频率：{source.cadence || '—'}</p>
+              <p className="text-xs text-muted-foreground">字段：{source.fields || '—'}</p>
+              {source.url && (
+                <p className="mt-1 truncate text-[11px] text-muted-foreground/70">
+                  抓取源：
+                  <a href={source.url} target="_blank" rel="noreferrer" className="text-info hover:underline">{source.url}</a>
+                  {source.lastCrawledAt && ` · 上次 ${new Date(source.lastCrawledAt).toLocaleString('zh-CN')}`}
+                </p>
+              )}
+              {source.links && source.links.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {source.links.map(([label, url]) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-info hover:bg-accent"
+                    >
+                      {label}
+                      <ExternalLink className="size-3" />
+                    </a>
+                  ))}
+                </div>
               )}
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">监控频率：{source.cadence}</p>
-            <p className="text-xs text-muted-foreground">字段：{source.fields}</p>
-            {source.links && source.links.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {source.links.map(([label, url]) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-info hover:bg-accent"
-                  >
-                    {label}
-                    <ExternalLink className="size-3" />
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
       <aside className="space-y-4">
         <Panel

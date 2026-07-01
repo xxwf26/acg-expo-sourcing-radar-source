@@ -11,10 +11,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import ChipEditor from '@/components/ChipEditor';
 import PairListEditor from '@/components/PairListEditor';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export type SimpleFieldType = 'text' | 'textarea' | 'chips' | 'links';
+export type SimpleFieldType = 'text' | 'textarea' | 'chips' | 'links' | 'select' | 'switch';
 
 export interface SimpleField {
   key: string;
@@ -22,6 +29,10 @@ export interface SimpleField {
   type: SimpleFieldType;
   placeholder?: string;
   required?: boolean;
+  /** select 类型的选项 */
+  options?: { label: string; value: string }[];
+  /** 字段下方的灰色帮助说明 */
+  hint?: string;
 }
 
 // 通用编辑/新增弹窗，用于字段较少的 events / sources。
@@ -109,6 +120,27 @@ export default function SimpleEditModal<T extends Record<string, any>>({
                     placeholder={f.placeholder}
                   />
                 )}
+                {f.type === 'select' && (
+                  <Select value={form[f.key] ?? ''} onValueChange={(v) => set(f.key, v)}>
+                    <SelectTrigger><SelectValue placeholder={f.placeholder} /></SelectTrigger>
+                    <SelectContent>
+                      {(f.options || []).map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {f.type === 'switch' && (
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!form[f.key]}
+                      onChange={(e) => set(f.key, e.target.checked)}
+                      className="size-4 accent-primary"
+                    />
+                    <span className="text-sm">{f.placeholder || '启用'}</span>
+                  </label>
+                )}
                 {f.type === 'chips' && (
                   <ChipEditor value={form[f.key] || []} onChange={(v) => set(f.key, v)} placeholder={f.placeholder} />
                 )}
@@ -123,6 +155,7 @@ export default function SimpleEditModal<T extends Record<string, any>>({
                     addLabel="添加链接"
                   />
                 )}
+                {f.hint && <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/80">{f.hint}</p>}
               </div>
             ))}
 

@@ -6,5 +6,6 @@ import { LlmClient } from './llm.client';
 @Module({
   controllers: [AiController],
   providers: [AiService, LlmClient],
+  exports: [LlmClient],
 })
 export class AiModule {}

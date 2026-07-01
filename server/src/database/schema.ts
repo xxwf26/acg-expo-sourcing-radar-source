@@ -81,8 +81,84 @@ export const sources = mysqlTable('sources', {
   fields: varchar('fields', { length: 255 }),
   links: json('links').$type<LinkPair[]>(),
   sortOrder: int('sort_order').default(0),
+  // ── 以下为「自动采集」扩展字段（P1）：让信息源从展示入口升级为可执行抓取配置 ──
+  /** 抓取入口 URL（名单页，非展会首页） */
+  url: varchar('url', { length: 1024 }),
+  /** 抓取策略：static(纯HTML/cheerio) | browser(无头浏览器,P2) | pdf(P2) */
+  strategy: varchar('strategy', { length: 32 }).default('static'),
+  /** 可选：CSS 选择器，缩小喂给 LLM 的正文范围，控 token */
+  selector: text('selector'),
+  /** 归属展会 id（抽出的候选默认挂到该展会） */
+  eventId: varchar('event_id', { length: 64 }),
+  /** 是否纳入抓取（false 则仅作展示，不抓） */
+  enabled: boolean('enabled').default(false).notNull(),
+  lastCrawledAt: timestamp('last_crawled_at'),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
+
+/** 抓取批次：每次抓取一条，存原始产物，可追溯/重跑（抓取层与抽取层解耦） */
+export const crawlRuns = mysqlTable(
+  'crawl_runs',
+  {
+    id: varchar('id', { length: 64 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sourceId: varchar('source_id', { length: 64 }).notNull(),
+    // running | ok | failed
+    status: varchar('status', { length: 16 }).default('running').notNull(),
+    /** 抓回并清洗后的文本（喂给 LLM 的原料） */
+    rawText: text('raw_text'),
+    /** 本次抽出多少候选 */
+    extractedCount: int('extracted_count').default(0),
+    error: text('error'),
+    startedAt: timestamp('started_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+    finishedAt: timestamp('finished_at'),
+  },
+  (table) => ({
+    idxSource: index('idx_crawlrun_source').on(table.sourceId),
+  }),
+);
+
+/** 候选复核队列（核心中间层）：抓取+抽取产物，人工复核后才转正为 entities */
+export const candidates = mysqlTable(
+  'candidates',
+  {
+    id: varchar('id', { length: 64 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sourceId: varchar('source_id', { length: 64 }),
+    crawlRunId: varchar('crawl_run_id', { length: 64 }),
+    eventId: varchar('event_id', { length: 64 }),
+    name: varchar('name', { length: 255 }).notNull(),
+    // master | creatorKol | supplier | platform（与 entities.type 一致；抽不准时默认 creatorKol）
+    type: varchar('type', { length: 32 }).default('creatorKol').notNull(),
+    region: varchar('region', { length: 128 }),
+    booth: varchar('booth', { length: 255 }),
+    followerScale: varchar('follower_scale', { length: 255 }),
+    links: json('links').$type<LinkPair[]>(),
+    reason: text('reason'),
+    /** 来源原文片段，复核时给人看依据（防 LLM 幻觉） */
+    rawSnippet: text('raw_snippet'),
+    /** AI 匹配分占位（P1 不打分，留空；P3 启用 sourcing_config 打分） */
+    aiScore: int('ai_score'),
+    /** 疑似已存在对象 id；命中则复核时提示合并 */
+    dedupEntityId: varchar('dedup_entity_id', { length: 64 }),
+    // pending | promoted | merged | rejected
+    status: varchar('status', { length: 16 }).default('pending').notNull(),
+    reviewedBy: varchar('reviewed_by', { length: 128 }),
+    createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+    updatedAt: timestamp('updated_at')
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow()
+      .notNull(),
+  },
+  (table) => ({
+    idxStatus: index('idx_candidate_status').on(table.status),
+    idxSource: index('idx_candidate_source').on(table.sourceId),
+  }),
+);
 
 /** 建联状态（取代原 localStorage acgRadarWorkflow.v1），每个对象一条 */
 export const engagements = mysqlTable(

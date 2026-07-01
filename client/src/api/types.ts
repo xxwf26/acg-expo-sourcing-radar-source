@@ -53,6 +53,77 @@ export interface ISource {
   fields: string | null;
   links: LinkPair[] | null;
   sortOrder: number;
+  // ── 自动采集（P1）抓取配置 ──
+  url: string | null;
+  strategy: string | null; // static | browser | pdf
+  selector: string | null;
+  eventId: string | null;
+  enabled: boolean;
+  lastCrawledAt: string | null;
+}
+
+export type CandidateStatus = 'pending' | 'promoted' | 'merged' | 'rejected';
+
+export interface ICandidate {
+  id: string;
+  sourceId: string | null;
+  crawlRunId: string | null;
+  eventId: string | null;
+  name: string;
+  type: EntityType;
+  region: string | null;
+  booth: string | null;
+  followerScale: string | null;
+  links: LinkPair[] | null;
+  reason: string | null;
+  rawSnippet: string | null;
+  aiScore: number | null;
+  dedupEntityId: string | null;
+  status: CandidateStatus;
+  reviewedBy: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ICandidateCounts {
+  pending: number;
+  promoted: number;
+  merged: number;
+  rejected: number;
+}
+
+/** 转正时复核人可携带的修正字段 */
+export interface IPromotePayload {
+  name?: string;
+  type?: EntityType;
+  priority?: Priority;
+  score?: number;
+  region?: string;
+  booth?: string;
+  followerScale?: string;
+  reason?: string;
+  events?: string[];
+  tags?: string[];
+  angles?: string[];
+}
+
+export interface ICrawlRunResult {
+  runId: string;
+  status: 'running' | 'ok' | 'failed';
+  extractedCount?: number;
+  duplicates?: number;
+  error?: string;
+}
+
+/** 抓取批次状态（轮询用） */
+export interface ICrawlRun {
+  id: string;
+  sourceId: string;
+  status: 'running' | 'ok' | 'failed';
+  extractedCount: number | null;
+  error: string | null;
+  startedAt: string;
+  finishedAt: string | null;
 }
 
 export interface IEngagement {

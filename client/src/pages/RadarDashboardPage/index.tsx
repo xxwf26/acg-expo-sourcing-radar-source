@@ -15,6 +15,7 @@ import SimpleEditModal, { type SimpleField } from './SimpleEditModal';
 import VisualWallSection from './VisualWallSection';
 import EventCalendarSection from './EventCalendarSection';
 import SourcesSection from './SourcesSection';
+import CandidateReviewSection from './CandidateReviewSection';
 import WorkflowSection from './WorkflowSection';
 import EntitySidePanel from './EntitySidePanel';
 import AiChatPanel from '@/components/AiChatPanel';
@@ -37,17 +38,55 @@ const EVENT_FIELDS: SimpleField[] = [
   { key: 'links', label: '链接', type: 'links' },
 ];
 
-const SOURCE_FIELDS: SimpleField[] = [
+const SOURCE_FIELDS_BASE: SimpleField[] = [
   { key: 'name', label: '名称', type: 'text', required: true, placeholder: '信息源名称' },
   { key: 'cadence', label: '监控频率', type: 'text', placeholder: '如 展前每周' },
   { key: 'fields', label: '字段', type: 'text', placeholder: '如 Exhibitors / Talent' },
   { key: 'links', label: '链接', type: 'links' },
+  // ── 自动采集配置 ──
+  {
+    key: 'url',
+    label: '抓取 URL',
+    type: 'text',
+    placeholder: 'https://… 名单页（非展会首页）',
+    hint: '填具体的参展画师/展商名单页地址，留空则该源仅作展示、不抓取。',
+  },
+  {
+    key: 'strategy',
+    label: '抓取策略',
+    type: 'select',
+    options: [
+      { label: '静态页（直接抓 HTML，最快）', value: 'static' },
+      { label: '浏览器渲染（JS 站，如 AX/gamescom）', value: 'browser' },
+      { label: 'PDF 名单', value: 'pdf' },
+    ],
+    hint: '官网名单多为 JS 渲染，static 抓不到时改用 browser（较慢，需渲染 + 分块抽取，约几分钟）。',
+  },
+  { key: 'selector', label: 'CSS 选择器（可选）', type: 'text', placeholder: '如 .artist-list，缩小抽取范围、省 token' },
+  { key: 'enabled', label: '纳入抓取', type: 'switch', placeholder: '启用后「一键抓取」会包含此源' },
 ];
 
-type ViewKey = 'entities' | 'visual' | 'events' | 'sources' | 'workflow';
+/** 源表单字段（含「关联展会」下拉，需运行时注入 events 选项） */
+function buildSourceFields(events: IEvent[]): SimpleField[] {
+  const fields = [...SOURCE_FIELDS_BASE];
+  // 在 selector 之后插入「关联展会」
+  const eventField: SimpleField = {
+    key: 'eventId',
+    label: '关联展会',
+    type: 'select',
+    options: [{ label: '（不关联）', value: '' }, ...events.map((e) => ({ label: `${e.short} · ${e.name}`, value: e.id }))],
+    hint: '抓到的候选会默认归属该展会。',
+  };
+  const idx = fields.findIndex((f) => f.key === 'selector');
+  fields.splice(idx + 1, 0, eventField);
+  return fields;
+}
+
+type ViewKey = 'entities' | 'candidates' | 'visual' | 'events' | 'sources' | 'workflow';
 
 const VIEW_TABS: { key: ViewKey; label: string }[] = [
   { key: 'entities', label: '建联对象' },
+  { key: 'candidates', label: '候选复核' },
   { key: 'visual', label: '视觉墙' },
   { key: 'events', label: '展会日历' },
   { key: 'sources', label: '信息源监控' },
@@ -308,6 +347,9 @@ export default function RadarDashboardPage() {
                 <EntitySidePanel />
               </div>
             )}
+            {view === 'candidates' && (
+              <CandidateReviewSection canEdit={isAdmin} entities={allEntities} />
+            )}
             {view === 'visual' && <VisualWallSection entities={filtered} />}
             {view === 'events' && (
               <EventCalendarSection
@@ -379,7 +421,7 @@ export default function RadarDashboardPage() {
       {/* 信息源 新增/编辑 */}
       <SimpleEditModal<ISource>
         title={sourceModal.isCreate ? '新增信息源' : `编辑信息源：${sourceModal.data.name || ''}`}
-        fields={SOURCE_FIELDS}
+        fields={buildSourceFields(events)}
         initial={sourceModal.data}
         isCreate={sourceModal.isCreate}
         open={sourceModal.open}

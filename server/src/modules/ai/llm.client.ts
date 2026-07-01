@@ -37,10 +37,12 @@ export class LlmClient implements OnModuleInit {
     return !!this.client;
   }
 
-  /** 非流式调用：返回拼接后的正文 + 用量。丢弃 thinking 块。瞬时错误自动重试。 */
+  /** 非流式调用：返回拼接后的正文 + 用量。丢弃 thinking 块。瞬时错误自动重试。
+   *  maxTokens 可选覆盖（抽取长名单时需给足，否则 thinking 会吃光默认额度导致正文为空）。 */
   async chat(
     system: string,
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    maxTokens?: number,
   ): Promise<{ content: string; model: string; usage: Record<string, number> }> {
     if (!this.client) {
       throw new Error('AI 服务未配置（缺少 AI_API_KEY）');
@@ -48,7 +50,7 @@ export class LlmClient implements OnModuleInit {
     const res = await this.callWithRetry(() =>
       this.client.messages.create({
         model: this.model,
-        max_tokens: this.maxTokens,
+        max_tokens: maxTokens ?? this.maxTokens,
         system,
         messages,
       }),
