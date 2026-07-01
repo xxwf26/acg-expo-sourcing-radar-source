@@ -114,7 +114,7 @@ export class CrawlService implements OnModuleDestroy {
           eventId: src.eventId ?? null,
           name: c.name,
           type: c.type ?? 'creatorKol',
-          region: c.region ?? src.eventId ?? null,
+          region: c.region ?? null,
           booth: c.booth ?? null,
           activityTime: c.activityTime ?? null,
           followerScale: c.followerScale ?? null,
@@ -196,15 +196,26 @@ export class CrawlService implements OnModuleDestroy {
     return { list, total: list.length };
   }
 
-  /** 触发全部启用源（各自异步后台跑） */
+  /**
+   * 触发全部启用源。串行执行：建好所有 run 记录(running)并立即返回 runId，
+   * 后台**一个抓完再抓下一个**，避免多源并发把 LLM 中转打爆(upstream 超时)。
+   */
   async runAll() {
     const enabled = await this.db.select().from(sources).where(eq(sources.enabled, true));
-    const runIds: string[] = [];
+    const jobs: { runId: string; src: typeof sources.$inferSelect }[] = [];
     for (const s of enabled) {
-      const { runId } = await this.runSource(s.id);
-      runIds.push(runId);
+      if (!s.url) continue; // 未配 URL 的源跳过
+      const runId = crypto.randomUUID();
+      await this.db.insert(crawlRuns).values({ id: runId, sourceId: s.id, status: 'running' });
+      jobs.push({ runId, src: s });
     }
-    return { ran: runIds.length, runIds };
+    // 后台串行跑，不阻塞请求
+    void (async () => {
+      for (const j of jobs) {
+        await this.executePipeline(j.runId, j.src).catch(() => {});
+      }
+    })();
+    return { ran: jobs.length, runIds: jobs.map((j) => j.runId) };
   }
 
   /** 候选列表（默认只看 pending，按创建时间倒序） */
@@ -345,7 +356,7 @@ export class CrawlService implements OnModuleDestroy {
     const conds = [eq(candidates.status, 'pending')];
     if (scope === 'pending-unscored') conds.push(isNull(candidates.aiScore));
     const rows = await this.db
-      .select({ id: candidates.id, name: candidates.name, type: candidates.type, region: candidates.region, booth: candidates.booth, reason: candidates.reason })
+      .select({ id: candidates.id, name: candidates.name, type: candidates.type, region: candidates.region, booth: candidates.booth, reason: candidates.reason, rawSnippet: candidates.rawSnippet })
       .from(candidates)
       .where(and(...conds));
 

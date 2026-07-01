@@ -14,6 +14,8 @@ export interface ScorableCandidate {
   region?: string | null;
   booth?: string | null;
   reason?: string | null;
+  /** 来源原文片段——常含画师自我简介/风格描述，是判断匹配度的关键信号 */
+  rawSnippet?: string | null;
 }
 
 export interface ScoreResult {
@@ -37,7 +39,7 @@ function buildSystem(cfg: SourcingConfigData): string {
 - 70-89：契合、值得联系
 - 50-69：一般相关、可备选
 - 0-49：弱相关或不符合采购窗口
-- 只依据给定信息判断，信息不足时给中性分并在理由中说明"资料不足"。
+- **重点参考每个候选的 bio（自我简介/风格描述）判断其领域、风格、周边/授权能力**；bio 为空才按名称与类型粗判并在理由里注明"资料不足"。
 
 ## 输出格式
 只输出 JSON 数组，不要解释、不要代码围栏，每个候选一项，顺序不限：
@@ -65,7 +67,8 @@ export async function scoreCandidates(
       type: c.type,
       region: c.region || '',
       booth: c.booth || '',
-      note: c.reason || '',
+      // 简介/原文片段截断到 300 字，控 token；这是判断风格/匹配度的关键
+      bio: (c.rawSnippet || c.reason || '').replace(/\s+/g, ' ').trim().slice(0, 300),
     }));
     const userMsg = `给以下候选打分（逐个返回 id/score/reason）：\n${JSON.stringify(payload)}`;
     try {
