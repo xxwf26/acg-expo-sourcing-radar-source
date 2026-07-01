@@ -18,3 +18,10 @@ export class PromoteCandidateDto {
 export class MergeCandidateDto {
   @IsString() targetEntityId!: string;
 }
+
+/** 采购匹配配置（P3-A 打分依据） */
+export class SourcingConfigDto {
+  @IsOptional() @IsArray() modules?: string[];
+  @IsOptional() @IsArray() benchmarks?: string[];
+  @IsOptional() @IsString() scoringRubric?: string;
+}

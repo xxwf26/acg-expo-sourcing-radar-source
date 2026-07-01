@@ -92,6 +92,8 @@ export const sources = mysqlTable('sources', {
   eventId: varchar('event_id', { length: 64 }),
   /** 是否纳入抓取（false 则仅作展示，不抓） */
   enabled: boolean('enabled').default(false).notNull(),
+  /** 断点续抓：已覆盖到名单第几段（chunk），下次从这里继续；抽完回绕到 0 */
+  crawlOffset: int('crawl_offset').default(0).notNull(),
   lastCrawledAt: timestamp('last_crawled_at'),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
@@ -143,8 +145,10 @@ export const candidates = mysqlTable(
     reason: text('reason'),
     /** 来源原文片段，复核时给人看依据（防 LLM 幻觉） */
     rawSnippet: text('raw_snippet'),
-    /** AI 匹配分占位（P1 不打分，留空；P3 启用 sourcing_config 打分） */
+    /** AI 匹配分占位（P1 不打分，留空；P3-A 由 sourcing_config 驱动打分填入） */
     aiScore: int('ai_score'),
+    /** AI 打分理由（一句话，说明为何这个分/推荐度） */
+    aiReason: text('ai_reason'),
     /** 疑似已存在对象 id；命中则复核时提示合并 */
     dedupEntityId: varchar('dedup_entity_id', { length: 64 }),
     // pending | promoted | merged | rejected
@@ -196,6 +200,25 @@ export const users = mysqlTable('users', {
   role: varchar('role', { length: 16 }).default('viewer').notNull(),
   displayName: varchar('display_name', { length: 128 }),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp('updated_at')
+    .default(sql`CURRENT_TIMESTAMP`)
+    .onUpdateNow()
+    .notNull(),
+});
+
+/**
+ * 采购匹配配置（P3-A）：驱动 AI 给候选打匹配分的"训练数据"。
+ * 单行表，id 固定 'default'。对应会议纪要「告诉 AI 采购模块、对标公司」。
+ */
+export const sourcingConfig = mysqlTable('sourcing_config', {
+  id: varchar('id', { length: 32 }).notNull().primaryKey().default('default'),
+  /** 采购模块，如 ['画师','KOL','美术供应商'] */
+  modules: json('modules').$type<string[]>(),
+  /** 对标公司/IP，如 ['漫威','迪士尼'] */
+  benchmarks: json('benchmarks').$type<string[]>(),
+  /** 打分口径说明，注入打分 prompt */
+  scoringRubric: text('scoring_rubric'),
+  updatedBy: varchar('updated_by', { length: 128 }),
   updatedAt: timestamp('updated_at')
     .default(sql`CURRENT_TIMESTAMP`)
     .onUpdateNow()

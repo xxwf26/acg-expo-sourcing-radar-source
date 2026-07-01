@@ -7,12 +7,13 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { DRIZZLE_DATABASE, type Database } from '../../database/database.module';
-import { sources, crawlRuns, candidates, entities, events } from '../../database/schema';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { sources, crawlRuns, candidates, entities, events, sourcingConfig } from '../../database/schema';
+import { and, desc, eq, sql, isNull } from 'drizzle-orm';
 import { LlmClient } from '../ai/llm.client';
 import { fetchSource } from './fetcher';
 import { closeBrowser } from './browser';
 import { extractCandidates } from './extractor';
+import { scoreCandidates } from './scorer';
 
 /** 名称规范化：用于候选与已有 entities 去重比对 */
 function normalizeName(s: string): string {
@@ -83,20 +84,28 @@ export class CrawlService implements OnModuleDestroy {
         const [ev] = await this.db.select().from(events).where(eq(events.id, src.eventId));
         eventShort = ev?.short;
       }
-      const { candidates: extracted, truncated } = await extractCandidates(this.llm, text, {
+      const { candidates: extracted, truncated, nextOffset, totalChunks } = await extractCandidates(this.llm, text, {
         sourceName: src.name,
         eventShort,
+        startChunk: src.crawlOffset ?? 0,
       });
 
       // 3. 去重比对 + 落候选
+      //   - 对已有正式对象：命中则标 dedupEntityId（复核时提示合并）
+      //   - 对本源已有候选（任何状态）：直接跳过，避免续抓/重抓产生重复候选
       const existing = await this.db.select({ id: entities.id, name: entities.name }).from(entities);
       const existingByNorm = new Map(existing.map((e) => [normalizeName(e.name), e.id]));
+      const priorCands = await this.db
+        .select({ name: candidates.name })
+        .from(candidates)
+        .where(eq(candidates.sourceId, sourceId));
+      const priorCandNorms = new Set(priorCands.map((c) => normalizeName(c.name)));
       const seenInBatch = new Set<string>();
 
       const rows = [];
       for (const c of extracted) {
         const norm = normalizeName(c.name);
-        if (!norm || seenInBatch.has(norm)) continue;
+        if (!norm || seenInBatch.has(norm) || priorCandNorms.has(norm)) continue;
         seenInBatch.add(norm);
         rows.push({
           id: crypto.randomUUID(),
@@ -120,8 +129,13 @@ export class CrawlService implements OnModuleDestroy {
         await this.db.insert(candidates).values(rows as any);
       }
 
-      // 4. 收尾：run ok + 更新 source.lastCrawledAt
-      const note = truncated ? '（名单过长，本次只抽取了前一部分，可再次抓取继续）' : '';
+      // 4. 收尾：run ok + 推进 source.crawlOffset（断点续抓）
+      const coveredTo = truncated ? nextOffset : totalChunks;
+      const note = truncated
+        ? `名单共 ${totalChunks} 段，本次抽到第 ${coveredTo} 段，再次抓取可继续后续`
+        : totalChunks > 1
+          ? `已覆盖全部 ${totalChunks} 段名单`
+          : '';
       await this.db
         .update(crawlRuns)
         .set({
@@ -132,7 +146,10 @@ export class CrawlService implements OnModuleDestroy {
           finishedAt: new Date(),
         })
         .where(eq(crawlRuns.id, runId));
-      await this.db.update(sources).set({ lastCrawledAt: new Date() }).where(eq(sources.id, sourceId));
+      await this.db
+        .update(sources)
+        .set({ lastCrawledAt: new Date(), crawlOffset: nextOffset })
+        .where(eq(sources.id, sourceId));
     } catch (e: any) {
       await this.db
         .update(crawlRuns)
@@ -197,7 +214,7 @@ export class CrawlService implements OnModuleDestroy {
       .select()
       .from(candidates)
       .where(where as any)
-      .orderBy(desc(candidates.createdAt));
+      .orderBy(sql`${candidates.aiScore} IS NULL`, desc(candidates.aiScore), desc(candidates.createdAt));
     return { list, total: list.length };
   }
 
@@ -271,5 +288,73 @@ export class CrawlService implements OnModuleDestroy {
       .set({ status: 'rejected', reviewedBy: reviewer ?? null })
       .where(eq(candidates.id, id));
     return { status: 'rejected' as const };
+  }
+
+  /**
+   * 恢复到待复核。用于误丢弃/误合并的找回（软删除的反操作）。
+   * 已转正(promoted)的不允许恢复——它已创建了正式对象，恢复语义不清，
+   * 需先自行处理那个对象。
+   */
+  async restore(id: string, reviewer?: string) {
+    const c = await this.getCandidate(id);
+    if (c.status === 'promoted') {
+      throw new BadRequestException('已转正的候选不能恢复（它已生成正式对象）；如需重做请先处理该对象');
+    }
+    if (c.status === 'pending') return { status: 'pending' as const };
+    await this.db
+      .update(candidates)
+      .set({ status: 'pending', dedupEntityId: c.status === 'merged' ? null : c.dedupEntityId, reviewedBy: reviewer ?? null })
+      .where(eq(candidates.id, id));
+    return { status: 'pending' as const };
+  }
+
+  // ─────────────── P3-A：采购配置 + AI 匹配打分 ───────────────
+
+  /** 读采购配置（单行 default，无则返回空配置） */
+  async getConfig() {
+    const [cfg] = await this.db.select().from(sourcingConfig).where(eq(sourcingConfig.id, 'default'));
+    return cfg ?? { id: 'default', modules: [], benchmarks: [], scoringRubric: null };
+  }
+
+  /** 写采购配置（upsert 单行） */
+  async updateConfig(data: { modules?: string[]; benchmarks?: string[]; scoringRubric?: string }, updatedBy?: string) {
+    const existing = await this.db.select().from(sourcingConfig).where(eq(sourcingConfig.id, 'default'));
+    const values = {
+      modules: data.modules ?? [],
+      benchmarks: data.benchmarks ?? [],
+      scoringRubric: data.scoringRubric ?? null,
+      updatedBy: updatedBy ?? null,
+    };
+    if (existing.length) {
+      await this.db.update(sourcingConfig).set(values).where(eq(sourcingConfig.id, 'default'));
+    } else {
+      await this.db.insert(sourcingConfig).values({ id: 'default', ...values });
+    }
+    return this.getConfig();
+  }
+
+  /**
+   * 给候选打匹配分。scope='pending-unscored' 只打待复核且未打分的；'all-pending' 重打所有待复核。
+   * 用采购配置驱动；配置为空也能跑（按通用 ACG 判断）。
+   */
+  async scorePending(scope: 'pending-unscored' | 'all-pending' = 'pending-unscored') {
+    if (!this.llm.available) {
+      throw new ServiceUnavailableException('AI 服务未配置（服务端缺少 AI_API_KEY），无法打分');
+    }
+    const cfg = await this.getConfig();
+    const conds = [eq(candidates.status, 'pending')];
+    if (scope === 'pending-unscored') conds.push(isNull(candidates.aiScore));
+    const rows = await this.db
+      .select({ id: candidates.id, name: candidates.name, type: candidates.type, region: candidates.region, booth: candidates.booth, reason: candidates.reason })
+      .from(candidates)
+      .where(and(...conds));
+
+    if (!rows.length) return { scored: 0, total: 0 };
+
+    const results = await scoreCandidates(this.llm, cfg, rows);
+    for (const r of results) {
+      await this.db.update(candidates).set({ aiScore: r.score, aiReason: r.reason || null }).where(eq(candidates.id, r.id));
+    }
+    return { scored: results.length, total: rows.length };
   }
 }

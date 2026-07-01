@@ -7,6 +7,7 @@ import type {
   ICrawlRunResult,
   IListResponse,
   IPromotePayload,
+  ISourcingConfig,
 } from './types';
 
 export const crawlApi = {
@@ -53,6 +54,26 @@ export const crawlApi = {
   /** 丢弃（admin） */
   reject: async (id: string): Promise<{ status: string }> => {
     const res = await axiosForBackend({ url: `/api/candidates/${id}/reject`, method: 'POST' });
+    return res.data;
+  },
+  /** 恢复到待复核（admin） */
+  restore: async (id: string): Promise<{ status: string }> => {
+    const res = await axiosForBackend({ url: `/api/candidates/${id}/restore`, method: 'POST' });
+    return res.data;
+  },
+  /** 读采购匹配配置 */
+  getConfig: async (): Promise<ISourcingConfig> => {
+    const res = await axiosForBackend({ url: '/api/sourcing-config', method: 'GET' });
+    return res.data;
+  },
+  /** 写采购匹配配置（admin） */
+  updateConfig: async (data: Partial<ISourcingConfig>): Promise<ISourcingConfig> => {
+    const res = await axiosForBackend({ url: '/api/sourcing-config', method: 'PUT', data });
+    return res.data;
+  },
+  /** 给待复核候选打匹配分（admin），scope 默认只打未打分的 */
+  score: async (scope: 'pending-unscored' | 'all-pending' = 'pending-unscored'): Promise<{ scored: number; total: number }> => {
+    const res = await axiosForBackend({ url: `/api/candidates/score?scope=${scope}`, method: 'POST', timeout: 300000 });
     return res.data;
   },
 };

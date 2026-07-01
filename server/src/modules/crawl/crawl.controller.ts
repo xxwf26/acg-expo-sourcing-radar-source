@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   Request,
   UseGuards,
@@ -12,7 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CrawlService } from './crawl.service';
-import { MergeCandidateDto, PromoteCandidateDto } from './crawl.dto';
+import { MergeCandidateDto, PromoteCandidateDto, SourcingConfigDto } from './crawl.dto';
 
 /**
  * 自动采集接口。
@@ -86,5 +87,37 @@ export class CrawlController {
   @Roles('admin')
   async reject(@Param('id') id: string, @Request() req: any) {
     return this.crawl.reject(id, req.user?.username);
+  }
+
+  /** 恢复到待复核（误丢弃/误合并的找回） */
+  @Post('candidates/:id/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async restore(@Param('id') id: string, @Request() req: any) {
+    return this.crawl.restore(id, req.user?.username);
+  }
+
+  // ── P3-A：采购配置 + 打分 ──
+
+  /** 读采购配置 */
+  @Get('sourcing-config')
+  async getConfig() {
+    return this.crawl.getConfig();
+  }
+
+  /** 写采购配置 */
+  @Put('sourcing-config')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async updateConfig(@Body() dto: SourcingConfigDto, @Request() req: any) {
+    return this.crawl.updateConfig(dto, req.user?.username);
+  }
+
+  /** 给待复核候选打匹配分（?scope=pending-unscored|all-pending） */
+  @Post('candidates/score')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async score(@Query('scope') scope?: string) {
+    return this.crawl.scorePending(scope === 'all-pending' ? 'all-pending' : 'pending-unscored');
   }
 }

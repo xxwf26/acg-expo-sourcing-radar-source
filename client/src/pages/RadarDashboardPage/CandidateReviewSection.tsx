@@ -19,9 +19,10 @@ import {
 import { cn } from '@/lib/utils';
 import { TYPE_LABELS, TYPE_OPTIONS } from '@/lib/filterConfig';
 import { useCandidates, useCandidateCounts, useCrawlMutations } from '@/hooks/useCrawl';
-import CrawlHistoryPanel from '@/components/CrawlHistoryPanel';
 import type { ICandidate, IEntity, IPromotePayload, Priority, EntityType } from '@/api/types';
-import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock } from 'lucide-react';
+import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2 } from 'lucide-react';
+import CrawlHistoryPanel from '@/components/CrawlHistoryPanel';
+import SourcingConfigModal from '@/components/SourcingConfigModal';
 
 const STATUS_TABS: { key: string; label: string }[] = [
   { key: 'pending', label: '待复核' },
@@ -190,6 +191,7 @@ function CandidateCard({
   onPromote,
   onMerge,
   onReject,
+  onRestore,
 }: {
   c: ICandidate;
   canEdit: boolean;
@@ -197,6 +199,7 @@ function CandidateCard({
   onPromote: () => void;
   onMerge: () => void;
   onReject: () => void;
+  onRestore: () => void;
 }) {
   const isPending = c.status === 'pending';
   return (
@@ -207,7 +210,13 @@ function CandidateCard({
             <h3 className="text-sm font-bold">{c.name}</h3>
             <Badge variant="secondary" className="font-normal">{TYPE_LABELS[c.type]}</Badge>
             {c.aiScore != null && (
-              <span className="inline-flex items-center gap-0.5 text-xs text-primary">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-semibold',
+                  c.aiScore >= 90 ? 'bg-primary/15 text-primary' : c.aiScore >= 70 ? 'bg-teal-100 text-teal-700' : c.aiScore >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground',
+                )}
+                title="AI 匹配分"
+              >
                 <Sparkles className="size-3" />{c.aiScore}
               </span>
             )}
@@ -242,6 +251,13 @@ function CandidateCard({
         )}
       </div>
 
+      {c.aiReason && (
+        <p className="mt-2 flex gap-1 text-xs leading-relaxed text-primary/90">
+          <Sparkles className="mt-0.5 size-3 shrink-0" />
+          <span>{c.aiReason}</span>
+        </p>
+      )}
+
       {c.reason && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{c.reason}</p>}
 
       {c.rawSnippet && (
@@ -267,6 +283,16 @@ function CandidateCard({
           </Button>
         </div>
       )}
+
+      {/* 已丢弃/已合并可一键恢复到待复核（软删除的反操作，防误操作） */}
+      {!isPending && canEdit && c.status !== 'promoted' && (
+        <div className="mt-3 border-t pt-3">
+          <Button variant="outline" size="sm" onClick={onRestore}>
+            <RotateCcw className="size-4" />
+            恢复到待复核
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -281,10 +307,11 @@ export default function CandidateReviewSection({
   const [status, setStatus] = useState('pending');
   const candidatesQuery = useCandidates(status);
   const countsQuery = useCandidateCounts();
-  const { promote, merge, reject } = useCrawlMutations();
+  const { promote, merge, reject, restore, score } = useCrawlMutations();
 
   const [promoteTarget, setPromoteTarget] = useState<ICandidate | null>(null);
   const [mergeTarget, setMergeTarget] = useState<ICandidate | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const counts = countsQuery.data;
   const list = candidatesQuery.data?.list || [];
@@ -316,9 +343,37 @@ export default function CandidateReviewSection({
       </div>
 
       {status === 'pending' && (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          候选由系统从信息源自动抓取 + AI 抽取而来，<b>未经人工确认不会进入正式对象库</b>。逐条转正 / 合并到已有 / 丢弃。
-        </p>
+        <div className="space-y-2">
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            候选由系统从信息源自动抓取 + AI 抽取而来，<b>未经人工确认不会进入正式对象库</b>。逐条转正 / 合并到已有 / 丢弃。
+          </p>
+          {canEdit && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
+                <Settings2 className="size-4" />
+                采购配置
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => score.mutate('pending-unscored')}
+                disabled={score.isPending}
+              >
+                <Sparkles className={cn('size-4', score.isPending && 'animate-pulse')} />
+                {score.isPending ? 'AI 打分中…' : 'AI 打分'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => score.mutate('all-pending')}
+                disabled={score.isPending}
+                className="text-xs text-muted-foreground"
+                title="忽略已有分数，对所有待复核重新打分（改了采购配置后用）"
+              >
+                重新打分全部
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {candidatesQuery.isLoading ? (
@@ -344,6 +399,7 @@ export default function CandidateReviewSection({
               onReject={() => {
                 if (confirm(`确认丢弃候选「${c.name}」？`)) reject.mutate(c.id);
               }}
+              onRestore={() => restore.mutate(c.id)}
             />
           ))}
         </div>
@@ -370,6 +426,7 @@ export default function CandidateReviewSection({
           merge.mutate({ id: mergeTarget.id, targetEntityId }, { onSuccess: () => setMergeTarget(null) });
         }}
       />
+      <SourcingConfigModal open={configOpen} onOpenChange={setConfigOpen} />
     </div>
   );
 }

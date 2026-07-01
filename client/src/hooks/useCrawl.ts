@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { crawlApi } from '@/api/crawl';
-import type { ICrawlRun, IPromotePayload } from '@/api/types';
+import type { ICrawlRun, IPromotePayload, ISourcingConfig } from '@/api/types';
 
 function errMsg(e: any, fallback: string): string {
   return e?.response?.data?.message || fallback;
@@ -47,6 +47,15 @@ export function useCrawlRuns() {
     staleTime: 10 * 1000,
     refetchInterval: (query) =>
       (query.state.data?.list || []).some((r) => r.status === 'running') ? 5000 : false,
+  });
+}
+
+/** 采购匹配配置 */
+export function useSourcingConfig() {
+  return useQuery({
+    queryKey: ['sourcing-config'],
+    queryFn: () => crawlApi.getConfig(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -125,5 +134,32 @@ export function useCrawlMutations() {
     onError: (e) => toast.error(errMsg(e, '丢弃失败')),
   });
 
-  return { run, runAll, promote, merge, reject };
+  const restore = useMutation({
+    mutationFn: (id: string) => crawlApi.restore(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success('已恢复到待复核');
+    },
+    onError: (e) => toast.error(errMsg(e, '恢复失败')),
+  });
+
+  const saveConfig = useMutation({
+    mutationFn: (data: Partial<ISourcingConfig>) => crawlApi.updateConfig(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sourcing-config'] });
+      toast.success('采购配置已保存');
+    },
+    onError: (e) => toast.error(errMsg(e, '保存失败')),
+  });
+
+  const score = useMutation({
+    mutationFn: (scope: 'pending-unscored' | 'all-pending') => crawlApi.score(scope),
+    onSuccess: (res) => {
+      invalidate();
+      toast.success(`AI 打分完成：${res.scored}/${res.total} 个候选`);
+    },
+    onError: (e) => toast.error(errMsg(e, 'AI 打分失败')),
+  });
+
+  return { run, runAll, promote, merge, reject, restore, saveConfig, score };
 }

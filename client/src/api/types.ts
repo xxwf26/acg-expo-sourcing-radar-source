@@ -79,6 +79,7 @@ export interface ICandidate {
   reason: string | null;
   rawSnippet: string | null;
   aiScore: number | null;
+  aiReason: string | null;
   dedupEntityId: string | null;
   status: CandidateStatus;
   reviewedBy: string | null;
@@ -91,6 +92,16 @@ export interface ICandidateCounts {
   promoted: number;
   merged: number;
   rejected: number;
+}
+
+/** 采购匹配配置（P3-A 打分依据） */
+export interface ISourcingConfig {
+  id: string;
+  modules: string[] | null;
+  benchmarks: string[] | null;
+  scoringRubric: string | null;
+  updatedBy?: string | null;
+  updatedAt?: string;
 }
 
 /** 转正时复核人可携带的修正字段 */

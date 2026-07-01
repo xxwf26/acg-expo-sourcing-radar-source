@@ -36,29 +36,31 @@ export default function CrawlHistoryPanel() {
       </summary>
       <div className="mt-2 space-y-1">
         {runs.map((r) => (
-          <div key={r.id} className="flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted/40">
-            <StatusIcon status={r.status} />
-            <span className="min-w-0 flex-1 truncate font-medium">{r.sourceName}</span>
-            <span className="shrink-0 text-muted-foreground">
-              {r.status === 'running'
-                ? '抓取中…'
-                : r.status === 'ok'
-                  ? `+${r.extractedCount ?? 0} 候选`
-                  : '失败'}
-            </span>
-            <span className="shrink-0 text-muted-foreground/70">{fmt(r.startedAt)}</span>
+          <div key={r.id} className="rounded-md px-2 py-1 text-xs hover:bg-muted/40">
+            <div className="flex items-center gap-2">
+              <StatusIcon status={r.status} />
+              <span className="min-w-0 flex-1 truncate font-medium">{r.sourceName}</span>
+              <span className="shrink-0 text-muted-foreground">
+                {r.status === 'running'
+                  ? '抓取中…'
+                  : r.status === 'ok'
+                    ? `+${r.extractedCount ?? 0} 候选`
+                    : '失败'}
+              </span>
+              <span className="shrink-0 text-muted-foreground/70">{fmt(r.startedAt)}</span>
+            </div>
+            {r.error && (
+              <p
+                className={cn(
+                  'mt-0.5 pl-5 text-[11px] leading-relaxed',
+                  r.status === 'failed' ? 'text-destructive' : 'text-muted-foreground/80',
+                )}
+              >
+                {r.error}
+              </p>
+            )}
           </div>
         ))}
-        {runs.some((r) => r.status === 'failed' && r.error) && (
-          <p className="mt-1 px-2 text-[11px] leading-relaxed text-muted-foreground">
-            失败原因：
-            {runs
-              .filter((r) => r.status === 'failed' && r.error)
-              .slice(0, 2)
-              .map((r) => `${r.sourceName}：${r.error}`)
-              .join('；')}
-          </p>
-        )}
       </div>
     </details>
   );

@@ -1,0 +1,1 @@
+ALTER TABLE `sources` ADD `crawl_offset` int DEFAULT 0 NOT NULL;
