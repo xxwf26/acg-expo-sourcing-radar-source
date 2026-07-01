@@ -118,6 +118,8 @@ export class CrawlService implements OnModuleDestroy {
           booth: c.booth ?? null,
           activityTime: c.activityTime ?? null,
           followerScale: c.followerScale ?? null,
+          // 抽到作品主页则存为可点链接（与 entities.links 同结构 [label,url][]）
+          links: c.website ? [['作品主页', c.website] as [string, string]] : null,
           reason: c.reason ?? null,
           rawSnippet: c.rawSnippet ?? null,
           dedupEntityId: existingByNorm.get(norm) ?? null,

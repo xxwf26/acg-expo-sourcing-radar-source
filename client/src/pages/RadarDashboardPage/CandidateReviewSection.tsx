@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { TYPE_LABELS, TYPE_OPTIONS } from '@/lib/filterConfig';
 import { useCandidates, useCandidateCounts, useCrawlMutations } from '@/hooks/useCrawl';
 import type { ICandidate, IEntity, IPromotePayload, Priority, EntityType } from '@/api/types';
-import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2 } from 'lucide-react';
+import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2, ExternalLink } from 'lucide-react';
 import CrawlHistoryPanel from '@/components/CrawlHistoryPanel';
 import SourcingConfigModal from '@/components/SourcingConfigModal';
 
@@ -259,6 +259,23 @@ function CandidateCard({
       )}
 
       {c.reason && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{c.reason}</p>}
+
+      {c.links && c.links.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {c.links.map(([label, url]) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-info hover:bg-accent"
+            >
+              {label || '作品主页'}
+              <ExternalLink className="size-3" />
+            </a>
+          ))}
+        </div>
+      )}
 
       {c.rawSnippet && (
         <div className="mt-2 rounded-md bg-muted/50 px-2.5 py-1.5">
