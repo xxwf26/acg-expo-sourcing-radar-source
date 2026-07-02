@@ -30,6 +30,8 @@ function normalizeName(s: string): string {
 @Injectable()
 export class CrawlService implements OnModuleDestroy {
   private readonly logger = new Logger('CrawlService');
+  /** 正在抓取的 sourceId 集合：防同源并发（offset 覆盖 + 去重 TOCTOU 产生重复候选） */
+  private readonly runningSources = new Set<string>();
 
   constructor(
     @Inject(DRIZZLE_DATABASE) private readonly db: Database,
@@ -90,6 +92,15 @@ export class CrawlService implements OnModuleDestroy {
   /** 后台抓取管线：抓取 → 抽取 → 去重 → 落候选。结果写回 crawl_runs。 */
   private async executePipeline(runId: string, src: typeof sources.$inferSelect) {
     const sourceId = src.id;
+    // 同源重入保护：已有该源在抓，则本 run 直接失败退出，避免 offset 覆盖 / 去重竞态
+    if (this.runningSources.has(sourceId)) {
+      await this.db
+        .update(crawlRuns)
+        .set({ status: 'failed', error: '该信息源正在抓取中，已跳过本次并发触发', finishedAt: new Date() })
+        .where(eq(crawlRuns.id, runId));
+      return;
+    }
+    this.runningSources.add(sourceId);
     try {
       // 1. 抓取
       const { text, bytes } = await fetchSource({
@@ -184,6 +195,8 @@ export class CrawlService implements OnModuleDestroy {
         .update(crawlRuns)
         .set({ status: 'failed', error: String(e?.message ?? e).slice(0, 1000), finishedAt: new Date() })
         .where(eq(crawlRuns.id, runId));
+    } finally {
+      this.runningSources.delete(sourceId);
     }
   }
 
@@ -304,11 +317,13 @@ export class CrawlService implements OnModuleDestroy {
       links: c.links ?? [],
       excluded: false,
     };
-    await this.db.insert(entities).values(merged as any);
-    await this.db
-      .update(candidates)
-      .set({ status: 'promoted', reviewedBy: reviewer ?? null })
-      .where(eq(candidates.id, id));
+    await this.db.transaction(async (tx) => {
+      await tx.insert(entities).values(merged as any);
+      await tx
+        .update(candidates)
+        .set({ status: 'promoted', reviewedBy: reviewer ?? null })
+        .where(eq(candidates.id, id));
+    });
     return { entityId, status: 'promoted' as const };
   }
 
@@ -342,13 +357,15 @@ export class CrawlService implements OnModuleDestroy {
     }
 
     const enriched = Object.keys(patch).length;
-    if (enriched) {
-      await this.db.update(entities).set(patch).where(eq(entities.id, targetEntityId));
-    }
-    await this.db
-      .update(candidates)
-      .set({ status: 'merged', dedupEntityId: targetEntityId, reviewedBy: reviewer ?? null })
-      .where(eq(candidates.id, id));
+    await this.db.transaction(async (tx) => {
+      if (enriched) {
+        await tx.update(entities).set(patch).where(eq(entities.id, targetEntityId));
+      }
+      await tx
+        .update(candidates)
+        .set({ status: 'merged', dedupEntityId: targetEntityId, reviewedBy: reviewer ?? null })
+        .where(eq(candidates.id, id));
+    });
     return { mergedInto: targetEntityId, status: 'merged' as const, enrichedFields: Object.keys(patch) };
   }
 
@@ -374,18 +391,21 @@ export class CrawlService implements OnModuleDestroy {
     opts: { ids?: string[]; minScore?: number; maxScore?: number },
     reviewer?: string,
   ) {
-    // 解析目标候选（限 pending）
-    let targets: { id: string }[];
+    // 解析目标候选（限 pending）；带上 dedupEntityId 以便批量转正时跳过疑似重复
+    let targets: { id: string; dedupEntityId: string | null }[];
     if (opts.ids && opts.ids.length) {
       targets = await this.db
-        .select({ id: candidates.id })
+        .select({ id: candidates.id, dedupEntityId: candidates.dedupEntityId })
         .from(candidates)
         .where(and(eq(candidates.status, 'pending'), inArray(candidates.id, opts.ids)));
     } else {
       const conds = [eq(candidates.status, 'pending')];
       if (typeof opts.minScore === 'number') conds.push(gte(candidates.aiScore, opts.minScore));
       if (typeof opts.maxScore === 'number') conds.push(lte(candidates.aiScore, opts.maxScore));
-      targets = await this.db.select({ id: candidates.id }).from(candidates).where(and(...conds));
+      targets = await this.db
+        .select({ id: candidates.id, dedupEntityId: candidates.dedupEntityId })
+        .from(candidates)
+        .where(and(...conds));
     }
     if (!targets.length) return { action, affected: 0 };
 
@@ -396,17 +416,25 @@ export class CrawlService implements OnModuleDestroy {
         .where(inArray(candidates.id, targets.map((t) => t.id)));
       return { action, affected: targets.length };
     }
-    // promote：逐条走 promote（无 patch，用候选原值 + aiScore）
+    // promote：逐条走 promote（无 patch，用候选原值 + aiScore）。
+    // 疑似重复（dedupEntityId 非空）跳过——批量转正不应盲目建重复对象，需人工 merge 决策。
     let ok = 0;
+    let skipped = 0;
+    const failed: string[] = [];
     for (const t of targets) {
+      if (t.dedupEntityId) {
+        skipped += 1;
+        continue;
+      }
       try {
         await this.promote(t.id, {}, reviewer);
         ok += 1;
-      } catch {
-        // 单条失败跳过，不中断整批
+      } catch (e: any) {
+        failed.push(`${t.id}: ${e?.message ?? e}`);
       }
     }
-    return { action, affected: ok };
+    if (failed.length) this.logger.warn(`批量转正 ${failed.length} 条失败：${failed.join('; ')}`);
+    return { action, affected: ok, skipped, failed: failed.length };
   }
 
   /**
@@ -471,9 +499,18 @@ export class CrawlService implements OnModuleDestroy {
     if (!rows.length) return { scored: 0, total: 0 };
 
     const results = await scoreCandidates(this.llm, cfg, rows);
+    // 只信任「本批输入过」的 id：LLM 可能幻觉/串批返回不在 scope 内的 id，
+    // 直接按其写库会污染其它候选（含已 promoted/rejected 的）。
+    const allowedIds = new Set(rows.map((r) => r.id));
+    let scored = 0;
     for (const r of results) {
-      await this.db.update(candidates).set({ aiScore: r.score, aiReason: r.reason || null }).where(eq(candidates.id, r.id));
+      if (!allowedIds.has(r.id)) continue;
+      await this.db
+        .update(candidates)
+        .set({ aiScore: r.score, aiReason: r.reason || null })
+        .where(and(eq(candidates.id, r.id), eq(candidates.status, 'pending')));
+      scored += 1;
     }
-    return { scored: results.length, total: rows.length };
+    return { scored, total: rows.length };
   }
 }

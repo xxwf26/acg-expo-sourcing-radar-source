@@ -1,5 +1,6 @@
 import { load } from 'cheerio';
 import { renderPage } from './browser';
+import { assertSafeUrl, safeFetch } from './url-guard';
 
 export interface FetchResult {
   /** 清洗后的纯文本（去脚本/样式，压缩空白），喂给 LLM 的原料 */
@@ -33,6 +34,8 @@ export async function fetchSource(opts: {
     return fetchPdf(opts.url);
   }
   if (strategy === 'browser') {
+    // SSRF 防护：浏览器策略同样校验目标 host（renderPage 内不再依赖上层）
+    await assertSafeUrl(opts.url);
     // renderPage 返回渲染后的可见纯文本（innerText），无需再走 htmlToText 挑标签
     const raw = await renderPage(opts.url, opts.selector);
     const text = cleanText(raw);
@@ -48,14 +51,13 @@ async function fetchStatic(url: string, selector?: string | null): Promise<Fetch
   const timer = setTimeout(() => controller.abort(), 30000);
   let html: string;
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: {
         // 合规 UA，标明来源，便于站方识别；只抓公开页
         'User-Agent': 'Mozilla/5.0 (compatible; ACGSourcingRadar/1.0; +internal sourcing tool)',
         Accept: 'text/html,application/xhtml+xml',
       },
-      redirect: 'follow',
     });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status} ${res.statusText}`);
@@ -74,10 +76,9 @@ async function fetchPdf(url: string): Promise<FetchResult> {
   const timer = setTimeout(() => controller.abort(), 45000);
   let buf: Buffer;
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ACGSourcingRadar/1.0; +internal sourcing tool)' },
-      redirect: 'follow',
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     buf = Buffer.from(await res.arrayBuffer());

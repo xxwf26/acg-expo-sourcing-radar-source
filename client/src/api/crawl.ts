@@ -77,7 +77,7 @@ export const crawlApi = {
     return res.data;
   },
   /** 批量转正/丢弃（admin），按 ids 或分数阈值 */
-  batch: async (body: { action: 'promote' | 'reject'; ids?: string[]; minScore?: number; maxScore?: number }): Promise<{ action: string; affected: number }> => {
+  batch: async (body: { action: 'promote' | 'reject'; ids?: string[]; minScore?: number; maxScore?: number }): Promise<{ action: string; affected: number; skipped?: number; failed?: number }> => {
     const res = await axiosForBackend({ url: '/api/candidates/batch', method: 'POST', data: body, timeout: 300000 });
     return res.data;
   },

@@ -73,16 +73,17 @@ export async function extractCandidates(
   const end = Math.min(start + maxChunks, allChunks.length);
   const chunks = allChunks.slice(start, end);
   const reachedEnd = end >= allChunks.length;
-  const truncated = !reachedEnd; // 本次没抽到末尾
-  const nextOffset = reachedEnd ? 0 : end; // 抽完回绕
 
   const seen = new Set<string>();
   const all: ExtractedCandidate[] = [];
   const usage: Record<string, number> = {};
   let model = '';
   let failedChunks = 0;
+  // 记录本批第一个失败块的绝对索引：offset 不能越过它，否则该段名单永久漏抓。
+  let firstFailedAbs = -1;
 
-  for (const chunk of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
     const userMsg = `## 来源
 信息源：${ctx.sourceName || '未命名'}${ctx.eventShort ? `（展会：${ctx.eventShort}）` : ''}
 
@@ -100,6 +101,7 @@ ${chunk}
       res = await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000);
     } catch {
       failedChunks += 1;
+      if (firstFailedAbs === -1) firstFailedAbs = start + i;
       continue;
     }
     model = res.model;
@@ -113,12 +115,18 @@ ${chunk}
     }
   }
 
-  // 有块失败或有块未处理，都算未抽全
+  // offset 推进：
+  //  - 有块失败 → 停在第一个失败块，下次从它重抽（成功前缀已入库，跨源去重保证重抽不产生重复）
+  //  - 全部成功且抽到末尾 → 回绕 0
+  //  - 全部成功但未到末尾 → 推进到 end 继续后续
+  const nextOffset = firstFailedAbs !== -1 ? firstFailedAbs : reachedEnd ? 0 : end;
+  const truncated = !reachedEnd || failedChunks > 0; // 未抽全（含失败块）
+
   return {
     candidates: all,
     usage,
     model,
-    truncated: truncated || failedChunks > 0,
+    truncated,
     nextOffset,
     totalChunks: allChunks.length,
   };

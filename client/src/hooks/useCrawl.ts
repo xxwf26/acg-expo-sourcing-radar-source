@@ -1,20 +1,21 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { crawlApi } from '@/api/crawl';
+import { getErrMsg as errMsg } from '@/lib/utils';
 import type { ICrawlRun, IPromotePayload, ISourcingConfig } from '@/api/types';
-
-function errMsg(e: any, fallback: string): string {
-  return e?.response?.data?.message || fallback;
-}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** 触发抓取后轮询 run 状态直到结束（后台抓取长名单可能几分钟） */
-async function runAndWait(sourceId: string): Promise<ICrawlRun> {
+/** 触发抓取后轮询 run 状态直到结束（后台抓取长名单可能几分钟）。
+ *  signal 用于组件卸载/登出时中止轮询，避免后台持续请求 + 登出后 401 触发整页刷新。 */
+async function runAndWait(sourceId: string, signal?: AbortSignal): Promise<ICrawlRun> {
   const { runId } = await crawlApi.run(sourceId);
   // 最多轮询 ~12 分钟（4s × 180）
   for (let i = 0; i < 180; i++) {
+    if (signal?.aborted) throw new Error('已取消');
     await sleep(4000);
+    if (signal?.aborted) throw new Error('已取消');
     const run = await crawlApi.getRun(runId);
     if (run.status !== 'running') return run;
   }
@@ -62,6 +63,12 @@ export function useSourcingConfig() {
 /** 抓取 + 复核动作 mutations */
 export function useCrawlMutations() {
   const qc = useQueryClient();
+  // 组件卸载/登出时中止所有进行中的轮询
+  const abortRef = useRef<AbortController>(new AbortController());
+  useEffect(() => {
+    const ctrl = abortRef.current;
+    return () => ctrl.abort();
+  }, []);
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['candidates'] });
     qc.invalidateQueries({ queryKey: ['candidate-counts'] });
@@ -70,7 +77,7 @@ export function useCrawlMutations() {
   };
 
   const run = useMutation({
-    mutationFn: (sourceId: string) => runAndWait(sourceId),
+    mutationFn: (sourceId: string) => runAndWait(sourceId, abortRef.current.signal),
     onSuccess: (run) => {
       invalidate();
       if (run.status === 'ok') {
@@ -81,17 +88,23 @@ export function useCrawlMutations() {
         toast.error(`抓取失败：${run.error || '未知错误'}`);
       }
     },
-    onError: (e) => toast.error(errMsg(e, '抓取失败')),
+    onError: (e) => {
+      if (abortRef.current.signal.aborted) return; // 卸载/登出主动取消，不弹错
+      toast.error(errMsg(e, '抓取失败'));
+    },
   });
 
   const runAll = useMutation({
     mutationFn: async () => {
+      const signal = abortRef.current.signal;
       const { runIds } = await crawlApi.runAll();
       // 等所有 run 结束，逐个统计结果（超时/未结束记为 timeout）
       const runs = await Promise.all(
         runIds.map(async (id) => {
           for (let i = 0; i < 180; i++) {
+            if (signal.aborted) return null;
             await sleep(4000);
+            if (signal.aborted) return null;
             const r = await crawlApi.getRun(id);
             if (r.status !== 'running') return r;
           }
@@ -105,6 +118,7 @@ export function useCrawlMutations() {
       return { total: runIds.length, ok, failed, pending, added };
     },
     onSuccess: (res) => {
+      if (abortRef.current.signal.aborted) return;
       invalidate();
       if (res.failed === 0 && res.pending === 0) {
         toast.success(`抓取完成：${res.ok} 个源，新增 ${res.added} 个候选`);
@@ -115,7 +129,10 @@ export function useCrawlMutations() {
         toast(`抓取结束：${parts.join(' / ')}（共 ${res.total} 源，新增 ${res.added} 候选）`);
       }
     },
-    onError: (e) => toast.error(errMsg(e, '批量抓取失败')),
+    onError: (e) => {
+      if (abortRef.current.signal.aborted) return;
+      toast.error(errMsg(e, '批量抓取失败'));
+    },
   });
 
   const promote = useMutation({
@@ -132,6 +149,7 @@ export function useCrawlMutations() {
     mutationFn: ({ id, targetEntityId }: { id: string; targetEntityId: string }) => crawlApi.merge(id, targetEntityId),
     onSuccess: () => {
       invalidate();
+      qc.invalidateQueries({ queryKey: ['entities'] }); // merge 会补充目标对象字段，需刷新
       toast.success('已合并到已有对象');
     },
     onError: (e) => toast.error(errMsg(e, '合并失败')),
@@ -180,7 +198,8 @@ export function useCrawlMutations() {
       invalidate();
       qc.invalidateQueries({ queryKey: ['entities'] });
       const verb = res.action === 'promote' ? '转正' : '丢弃';
-      toast.success(`批量${verb}完成：${res.affected} 个候选`);
+      const extra = res.skipped ? `，跳过 ${res.skipped} 个疑似重复（请手动合并）` : '';
+      toast.success(`批量${verb}完成：${res.affected} 个候选${extra}`);
     },
     onError: (e) => toast.error(errMsg(e, '批量操作失败')),
   });

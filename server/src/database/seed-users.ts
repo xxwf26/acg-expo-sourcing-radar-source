@@ -8,15 +8,26 @@ import mysql from 'mysql2/promise';
 import { drizzle } from 'drizzle-orm/mysql2';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import * as schema from './schema';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, '..', '..', '.env') });
 
-// 默认账号；首次部署后请尽快改密码（改库或重设）
+// 生成一个便于抄录的强随机初始口令（无歧义字符集）
+function randomPassword(len = 16): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const bytes = randomBytes(len);
+  let out = '';
+  for (let i = 0; i < len; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+
+// 初始账号口令优先从环境变量读；未设则随机生成并在控制台打印一次。
+// 不再硬编码 admin123/viewer123 这类弱口令。
 const DEFAULT_USERS = [
-  { username: 'admin', password: 'admin123', role: 'admin', displayName: '管理员' },
-  { username: 'viewer', password: 'viewer123', role: 'viewer', displayName: '只读用户' },
+  { username: 'admin', password: process.env.SEED_ADMIN_PASSWORD || randomPassword(), role: 'admin', displayName: '管理员' },
+  { username: 'viewer', password: process.env.SEED_VIEWER_PASSWORD || randomPassword(), role: 'viewer', displayName: '只读用户' },
 ];
 
 async function main() {
