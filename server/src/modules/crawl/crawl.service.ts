@@ -5,10 +5,13 @@ import {
   BadRequestException,
   ServiceUnavailableException,
   OnModuleDestroy,
+  Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { DRIZZLE_DATABASE, type Database } from '../../database/database.module';
 import { sources, crawlRuns, candidates, entities, events, sourcingConfig } from '../../database/schema';
-import { and, desc, eq, sql, isNull } from 'drizzle-orm';
+import { and, desc, eq, sql, isNull, inArray, gte, lte } from 'drizzle-orm';
 import { LlmClient } from '../ai/llm.client';
 import { fetchSource } from './fetcher';
 import { closeBrowser } from './browser';
@@ -26,14 +29,38 @@ function normalizeName(s: string): string {
 
 @Injectable()
 export class CrawlService implements OnModuleDestroy {
+  private readonly logger = new Logger('CrawlService');
+
   constructor(
     @Inject(DRIZZLE_DATABASE) private readonly db: Database,
     private readonly llm: LlmClient,
+    private readonly config: ConfigService,
   ) {}
 
   /** 进程/模块销毁时关闭无头浏览器，避免残留 chromium 进程 */
   async onModuleDestroy() {
     await closeBrowser();
+  }
+
+  /**
+   * 每周定时自动重爬所有启用源（会议纪要「数据每周重新爬取」）。
+   * 默认关闭，需在 .env 设 CRAWL_WEEKLY_ENABLED=true 才启用——避免无人值守时
+   * 突然产生大量抓取/LLM 调用。每周一凌晨 3 点跑，复用 runAll 的串行逻辑。
+   */
+  @Cron(CronExpression.EVERY_WEEK)
+  async weeklyAutoCrawl() {
+    if (this.config.get<string>('CRAWL_WEEKLY_ENABLED') !== 'true') return;
+    if (!this.llm.available) {
+      this.logger.warn('每周自动抓取跳过：AI 未配置');
+      return;
+    }
+    this.logger.log('每周自动抓取开始…');
+    try {
+      const res = await this.runAll();
+      this.logger.log(`每周自动抓取已触发 ${res.ran} 个源`);
+    } catch (e: any) {
+      this.logger.error(`每周自动抓取失败：${e?.message ?? e}`);
+    }
   }
 
   /**
@@ -285,16 +312,44 @@ export class CrawlService implements OnModuleDestroy {
     return { entityId, status: 'promoted' as const };
   }
 
-  /** 合并到已有对象（仅标记候选 merged，不覆盖已有数据，避免误伤复核过的对象） */
+  /**
+   * 合并到已有对象：标记候选 merged，并把候选的**缺失字段补充**进目标对象
+   * （只填目标为空的字段，不覆盖已复核过的非空值）。links 做并集去重。
+   */
   async merge(id: string, targetEntityId: string, reviewer?: string) {
-    await this.getCandidate(id);
+    const c = await this.getCandidate(id);
     const [target] = await this.db.select().from(entities).where(eq(entities.id, targetEntityId));
     if (!target) throw new NotFoundException('目标对象不存在');
+
+    // 补充：仅当目标该字段为空时才用候选值填入
+    const patch: Record<string, any> = {};
+    if (!target.region && c.region) patch.region = c.region;
+    if (!target.booth && c.booth) patch.booth = c.booth;
+    if (!target.followerScale && c.followerScale) patch.followerScale = c.followerScale;
+
+    // links 并集去重（按 url）
+    const candLinks = (c.links ?? []) as [string, string][];
+    if (candLinks.length) {
+      const existLinks = (target.links ?? []) as [string, string][];
+      const seenUrls = new Set(existLinks.map(([, u]) => u));
+      const add = candLinks.filter(([, u]) => u && !seenUrls.has(u));
+      if (add.length) patch.links = [...existLinks, ...add];
+    }
+    // 候选归属展会若目标未包含则补入
+    if (c.eventId) {
+      const evs = (target.events ?? []) as string[];
+      if (!evs.includes(c.eventId)) patch.events = [...evs, c.eventId];
+    }
+
+    const enriched = Object.keys(patch).length;
+    if (enriched) {
+      await this.db.update(entities).set(patch).where(eq(entities.id, targetEntityId));
+    }
     await this.db
       .update(candidates)
       .set({ status: 'merged', dedupEntityId: targetEntityId, reviewedBy: reviewer ?? null })
       .where(eq(candidates.id, id));
-    return { mergedInto: targetEntityId, status: 'merged' as const };
+    return { mergedInto: targetEntityId, status: 'merged' as const, enrichedFields: Object.keys(patch) };
   }
 
   /** 丢弃 */
@@ -305,6 +360,53 @@ export class CrawlService implements OnModuleDestroy {
       .set({ status: 'rejected', reviewedBy: reviewer ?? null })
       .where(eq(candidates.id, id));
     return { status: 'rejected' as const };
+  }
+
+  /**
+   * 批量处理待复核候选。
+   * - action='promote'：逐条转正（各自建 entity）
+   * - action='reject'：批量丢弃
+   * 目标可为显式 ids，或按分数阈值（minScore/maxScore，含边界）筛选 pending。
+   * 转正串行（每条要 insert entity），丢弃可一次 update。
+   */
+  async batch(
+    action: 'promote' | 'reject',
+    opts: { ids?: string[]; minScore?: number; maxScore?: number },
+    reviewer?: string,
+  ) {
+    // 解析目标候选（限 pending）
+    let targets: { id: string }[];
+    if (opts.ids && opts.ids.length) {
+      targets = await this.db
+        .select({ id: candidates.id })
+        .from(candidates)
+        .where(and(eq(candidates.status, 'pending'), inArray(candidates.id, opts.ids)));
+    } else {
+      const conds = [eq(candidates.status, 'pending')];
+      if (typeof opts.minScore === 'number') conds.push(gte(candidates.aiScore, opts.minScore));
+      if (typeof opts.maxScore === 'number') conds.push(lte(candidates.aiScore, opts.maxScore));
+      targets = await this.db.select({ id: candidates.id }).from(candidates).where(and(...conds));
+    }
+    if (!targets.length) return { action, affected: 0 };
+
+    if (action === 'reject') {
+      await this.db
+        .update(candidates)
+        .set({ status: 'rejected', reviewedBy: reviewer ?? null })
+        .where(inArray(candidates.id, targets.map((t) => t.id)));
+      return { action, affected: targets.length };
+    }
+    // promote：逐条走 promote（无 patch，用候选原值 + aiScore）
+    let ok = 0;
+    for (const t of targets) {
+      try {
+        await this.promote(t.id, {}, reviewer);
+        ok += 1;
+      } catch {
+        // 单条失败跳过，不中断整批
+      }
+    }
+    return { action, affected: ok };
   }
 
   /**

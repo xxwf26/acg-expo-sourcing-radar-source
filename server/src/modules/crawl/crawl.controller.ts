@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CrawlService } from './crawl.service';
-import { MergeCandidateDto, PromoteCandidateDto, SourcingConfigDto } from './crawl.dto';
+import { BatchCandidateDto, MergeCandidateDto, PromoteCandidateDto, SourcingConfigDto } from './crawl.dto';
 
 /**
  * 自动采集接口。
@@ -119,5 +119,13 @@ export class CrawlController {
   @Roles('admin')
   async score(@Query('scope') scope?: string) {
     return this.crawl.scorePending(scope === 'all-pending' ? 'all-pending' : 'pending-unscored');
+  }
+
+  /** 批量转正/丢弃候选（按 ids 或分数阈值） */
+  @Post('candidates/batch')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async batch(@Body() dto: BatchCandidateDto, @Request() req: any) {
+    return this.crawl.batch(dto.action, { ids: dto.ids, minScore: dto.minScore, maxScore: dto.maxScore }, req.user?.username);
   }
 }

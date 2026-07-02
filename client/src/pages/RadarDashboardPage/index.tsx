@@ -16,6 +16,7 @@ import VisualWallSection from './VisualWallSection';
 import EventCalendarSection from './EventCalendarSection';
 import SourcesSection from './SourcesSection';
 import CandidateReviewSection from './CandidateReviewSection';
+import EngagementBoardSection from './EngagementBoardSection';
 import WorkflowSection from './WorkflowSection';
 import EntitySidePanel from './EntitySidePanel';
 import AiChatPanel from '@/components/AiChatPanel';
@@ -82,7 +83,7 @@ function buildSourceFields(events: IEvent[]): SimpleField[] {
   return fields;
 }
 
-type ViewKey = 'entities' | 'candidates' | 'visual' | 'events' | 'sources' | 'workflow';
+type ViewKey = 'entities' | 'candidates' | 'visual' | 'events' | 'sources' | 'board' | 'workflow';
 
 const VIEW_TABS: { key: ViewKey; label: string }[] = [
   { key: 'entities', label: '建联对象' },
@@ -90,6 +91,7 @@ const VIEW_TABS: { key: ViewKey; label: string }[] = [
   { key: 'visual', label: '视觉墙' },
   { key: 'events', label: '展会日历' },
   { key: 'sources', label: '信息源监控' },
+  { key: 'board', label: '建联看板' },
   { key: 'workflow', label: '落地方案' },
 ];
 
@@ -366,6 +368,9 @@ export default function RadarDashboardPage() {
                 onCreate={() => setSourceModal({ open: true, data: { links: [] }, isCreate: true })}
                 onEdit={(s) => setSourceModal({ open: true, data: s, isCreate: false })}
               />
+            )}
+            {view === 'board' && (
+              <EngagementBoardSection entities={allEntities} engagementMap={engagementMap} events={events} />
             )}
             {view === 'workflow' && <WorkflowSection />}
           </>

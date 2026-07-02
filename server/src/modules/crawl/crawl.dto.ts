@@ -25,3 +25,11 @@ export class SourcingConfigDto {
   @IsOptional() @IsArray() benchmarks?: string[];
   @IsOptional() @IsString() scoringRubric?: string;
 }
+
+/** 批量处理候选 */
+export class BatchCandidateDto {
+  @IsIn(['promote', 'reject']) action!: 'promote' | 'reject';
+  @IsOptional() @IsArray() ids?: string[];
+  @IsOptional() @IsInt() @Min(0) @Max(100) minScore?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(100) maxScore?: number;
+}

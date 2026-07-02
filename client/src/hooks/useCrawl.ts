@@ -173,5 +173,17 @@ export function useCrawlMutations() {
     onError: (e) => toast.error(errMsg(e, 'AI 打分失败')),
   });
 
-  return { run, runAll, promote, merge, reject, restore, saveConfig, score };
+  const batch = useMutation({
+    mutationFn: (body: { action: 'promote' | 'reject'; ids?: string[]; minScore?: number; maxScore?: number }) =>
+      crawlApi.batch(body),
+    onSuccess: (res) => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['entities'] });
+      const verb = res.action === 'promote' ? '转正' : '丢弃';
+      toast.success(`批量${verb}完成：${res.affected} 个候选`);
+    },
+    onError: (e) => toast.error(errMsg(e, '批量操作失败')),
+  });
+
+  return { run, runAll, promote, merge, reject, restore, saveConfig, score, batch };
 }

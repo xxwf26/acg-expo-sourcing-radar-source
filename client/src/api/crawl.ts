@@ -76,4 +76,9 @@ export const crawlApi = {
     const res = await axiosForBackend({ url: `/api/candidates/score?scope=${scope}`, method: 'POST', timeout: 300000 });
     return res.data;
   },
+  /** 批量转正/丢弃（admin），按 ids 或分数阈值 */
+  batch: async (body: { action: 'promote' | 'reject'; ids?: string[]; minScore?: number; maxScore?: number }): Promise<{ action: string; affected: number }> => {
+    const res = await axiosForBackend({ url: '/api/candidates/batch', method: 'POST', data: body, timeout: 300000 });
+    return res.data;
+  },
 };

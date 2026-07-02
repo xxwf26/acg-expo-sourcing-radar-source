@@ -327,7 +327,7 @@ export default function CandidateReviewSection({
   const [status, setStatus] = useState('pending');
   const candidatesQuery = useCandidates(status);
   const countsQuery = useCandidateCounts();
-  const { promote, merge, reject, restore, score } = useCrawlMutations();
+  const { promote, merge, reject, restore, score, batch } = useCrawlMutations();
 
   const [promoteTarget, setPromoteTarget] = useState<ICandidate | null>(null);
   const [mergeTarget, setMergeTarget] = useState<ICandidate | null>(null);
@@ -336,6 +336,9 @@ export default function CandidateReviewSection({
   const counts = countsQuery.data;
   const list = candidatesQuery.data?.list || [];
   const entityName = (id: string | null) => entities.find((e) => e.id === id)?.name;
+  // 批量阈值命中数（仅当前 pending 列表）
+  const highScoreCount = list.filter((c) => c.aiScore != null && c.aiScore >= 85).length;
+  const lowScoreCount = list.filter((c) => c.aiScore != null && c.aiScore < 50).length;
 
   return (
     <div className="space-y-4">
@@ -390,6 +393,35 @@ export default function CandidateReviewSection({
                 title="忽略已有分数，对所有待复核重新打分（改了采购配置后用）"
               >
                 重新打分全部
+              </Button>
+
+              {/* 批量操作：按分数阈值。显示命中数，避免误操作 */}
+              <span className="mx-1 h-4 w-px bg-border" />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={batch.isPending || highScoreCount === 0}
+                onClick={() => {
+                  if (confirm(`确认批量转正 ${highScoreCount} 个匹配分 ≥85 的候选？`))
+                    batch.mutate({ action: 'promote', minScore: 85 });
+                }}
+                className="text-primary"
+              >
+                <Check className="size-4" />
+                批量转正 ≥85（{highScoreCount}）
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={batch.isPending || lowScoreCount === 0}
+                onClick={() => {
+                  if (confirm(`确认批量丢弃 ${lowScoreCount} 个匹配分 <50 的候选？（可在“已丢弃”里恢复）`))
+                    batch.mutate({ action: 'reject', maxScore: 49 });
+                }}
+                className="text-destructive hover:bg-destructive/5"
+              >
+                <Trash2 className="size-4" />
+                批量丢弃 &lt;50（{lowScoreCount}）
               </Button>
             </div>
           )}
