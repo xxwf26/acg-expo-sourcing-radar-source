@@ -19,6 +19,12 @@ export class VisualDto {
   @IsString() url!: string;
 }
 
+export class ContactDto {
+  @IsString() channel!: string;
+  @IsString() value!: string;
+  @IsOptional() @IsString() note?: string;
+}
+
 export class CreateEntityDto {
   @IsString()
   @MaxLength(255)
@@ -74,6 +80,15 @@ export class CreateEntityDto {
   @IsOptional()
   @IsArray()
   links?: [string, string][];
+
+  // 结构化联系方式；contactCheckedAt 由 service 在写 contacts 时自动盖，不从 body 收
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ContactDto)
+  contacts?: ContactDto[];
+
+  @IsOptional() @IsString() @MaxLength(64) contactCheckedBy?: string;
 
   @IsOptional()
   @IsBoolean()

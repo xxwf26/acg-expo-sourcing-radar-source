@@ -108,7 +108,11 @@ export default function EntityDetailModal({
       setOwner(engagement?.owner || '');
       setNote(engagement?.note || '');
     }
-  }, [open, isCreate, entity?.id, engagement?.status, engagement?.owner, engagement?.note]);
+    // 依赖只含 open/isCreate/entity.id：仅在打开或切换对象时初始化建联字段。
+    // 不能依赖 engagement.status/owner/note——否则失焦保存触发的乐观更新/refetch
+    // 会重跑本 effect，覆盖用户正在输入的负责人/备注。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isCreate, entity?.id]);
 
   if (!open) return null;
   if (!isCreate && !entity) return null;
@@ -513,11 +517,11 @@ export default function EntityDetailModal({
                   )}
                 </div>
 
-                {/* AI 总结 + 半自动找联系方式（查看态；登录用户均可点，viewer 亦可） */}
+                {/* AI 总结 + 找联系方式（查看态；录入需 canEdit，viewer 只读） */}
                 {entity && (
                   <div className="space-y-3">
                     <AiPanel entityId={entity.id} />
-                    <ContactFinder name={entity.name} region={entity.region} />
+                    <ContactFinder entity={entity} canEdit={canEdit} />
                   </div>
                 )}
               </>

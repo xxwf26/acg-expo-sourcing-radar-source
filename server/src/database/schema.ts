@@ -7,6 +7,9 @@ export type LinkPair = [string, string];
 /** 视觉预览入口 */
 export type Visual = { title: string; caption: string; url: string };
 
+/** 结构化联系方式：channel 如 email/wechat/x/website/other */
+export type Contact = { channel: string; value: string; note?: string };
+
 /** 展会主表 */
 export const events = mysqlTable(
   'events',
@@ -58,6 +61,12 @@ export const entities = mysqlTable(
     cases: json('cases').$type<string[]>(),
     visuals: json('visuals').$type<Visual[]>(),
     links: json('links').$type<LinkPair[]>(),
+    /** 结构化联系方式（邮箱/微信/X/官网等），人工核实后录入 */
+    contacts: json('contacts').$type<Contact[]>(),
+    /** 联系方式最近核实时间 */
+    contactCheckedAt: timestamp('contact_checked_at'),
+    /** 联系方式最近核实人 */
+    contactCheckedBy: varchar('contact_checked_by', { length: 64 }),
     /** 取代原 excludedEntityIds：true 表示非营销采购窗口，默认列表不展示 */
     excluded: boolean('excluded').default(false).notNull(),
     createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),

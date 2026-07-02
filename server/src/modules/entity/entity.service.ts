@@ -78,6 +78,10 @@ export class EntityService {
     for (const [k, v] of Object.entries(data)) {
       if (v !== undefined) patch[k] = v;
     }
+    // 录入/修改联系方式时，自动盖上核实时间（核实人由 body.contactCheckedBy 带入）
+    if ('contacts' in patch) {
+      patch.contactCheckedAt = new Date();
+    }
     if (Object.keys(patch).length > 0) {
       await this.db.update(entities).set(patch).where(eq(entities.id, id));
     }

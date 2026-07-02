@@ -50,6 +50,13 @@
       "when": 1782891774684,
       "tag": "0006_tense_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1782981058752,
+      "tag": "0007_illegal_sabretooth",
+      "breakpoints": true
     }
   ]
 }

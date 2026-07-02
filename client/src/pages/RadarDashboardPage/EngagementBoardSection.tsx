@@ -13,6 +13,9 @@ function csvCell(v: unknown): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** 漏斗各状态段的配色（按 ENGAGEMENT_STATUS_OPTIONS 顺序循环取用） */
+const FUNNEL_COLORS = ['bg-slate-400', 'bg-blue-400', 'bg-amber-400', 'bg-emerald-500', 'bg-zinc-300'];
+
 /**
  * 建联进度看板 + 导出（纯前端，用已加载的 entities + engagements 派生）。
  * - 按建联状态分组统计
@@ -47,7 +50,7 @@ export default function EngagementBoardSection({
   );
 
   const exportCsv = () => {
-    const headers = ['名称', '类型', '优先级', '匹配分', '地区', '展位', '关联展会', '建联状态', '负责人', '备注', '链接'];
+    const headers = ['名称', '类型', '优先级', '匹配分', '地区', '展位', '关联展会', '建联状态', '负责人', '备注', '联系方式', '最近核实', '链接'];
     const rows = visible
       .slice()
       .sort((a, b) => b.score - a.score)
@@ -55,6 +58,10 @@ export default function EngagementBoardSection({
         const eng = engagementMap.get(e.id);
         const links = (e.links || []).map(([, url]) => url).join(' | ');
         const evs = (e.events || []).map(eventShort).join(' / ');
+        const contacts = (e.contacts || []).map((c) => `${c.channel}:${c.value}`).join(' | ');
+        const checked = e.contactCheckedAt
+          ? `${e.contactCheckedBy || '—'} ${e.contactCheckedAt.slice(0, 10)}`
+          : '';
         return [
           e.name,
           TYPE_LABELS[e.type] || e.type,
@@ -66,6 +73,8 @@ export default function EngagementBoardSection({
           eng?.status || '待评估',
           eng?.owner || '',
           eng?.note || '',
+          contacts,
+          checked,
           links,
         ].map(csvCell).join(',');
       });
@@ -123,16 +132,14 @@ export default function EngagementBoardSection({
             const n = statusCounts.get(st) || 0;
             const pct = visible.length ? (n / visible.length) * 100 : 0;
             if (pct === 0) return null;
-            const colors = ['bg-slate-400', 'bg-blue-400', 'bg-amber-400', 'bg-emerald-500', 'bg-zinc-300'];
-            return <div key={st} className={cn(colors[i % colors.length])} style={{ width: `${pct}%` }} title={`${st}: ${n}`} />;
+            return <div key={st} className={cn(FUNNEL_COLORS[i % FUNNEL_COLORS.length])} style={{ width: `${pct}%` }} title={`${st}: ${n}`} />;
           })}
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           {ENGAGEMENT_STATUS_OPTIONS.map((st, i) => {
-            const colors = ['bg-slate-400', 'bg-blue-400', 'bg-amber-400', 'bg-emerald-500', 'bg-zinc-300'];
             return (
               <span key={st} className="inline-flex items-center gap-1">
-                <span className={cn('inline-block size-2 rounded-full', colors[i % colors.length])} />
+                <span className={cn('inline-block size-2 rounded-full', FUNNEL_COLORS[i % FUNNEL_COLORS.length])} />
                 {st}
               </span>
             );

@@ -1,5 +1,12 @@
 export type LinkPair = [string, string];
 
+/** 结构化联系方式：channel 如 email/wechat/x/website/other */
+export interface IContact {
+  channel: string;
+  value: string;
+  note?: string;
+}
+
 export interface IVisual {
   title: string;
   caption: string;
@@ -43,6 +50,9 @@ export interface IEntity {
   cases: string[] | null;
   visuals: IVisual[] | null;
   links: LinkPair[] | null;
+  contacts: IContact[] | null;
+  contactCheckedAt: string | null;
+  contactCheckedBy: string | null;
   excluded: boolean;
 }
 
