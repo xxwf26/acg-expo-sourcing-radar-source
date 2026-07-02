@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -104,7 +104,7 @@ function PromoteDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="mb-1 text-xs font-semibold text-muted-foreground">匹配分</p>
-              <Input type="number" min={0} max={100} value={score} onChange={(e) => setScore(Number(e.target.value))} />
+              <Input type="number" min={0} max={100} value={score} onChange={(e) => { const n = Number(e.target.value); setScore(Number.isNaN(n) ? 0 : Math.max(0, Math.min(100, n))); }} />
             </div>
             <div>
               <p className="mb-1 text-xs font-semibold text-muted-foreground">展位</p>
@@ -148,10 +148,13 @@ function MergeDialog({
   saving: boolean;
 }) {
   const [target, setTarget] = useState('');
+  // 优先把疑似重复对象排在最前（useMemo 避免每次渲染重排；须在 early return 之前调 hook）
+  const suggested = candidate?.dedupEntityId;
+  const sorted = useMemo(
+    () => [...entities].sort((a, b) => (a.id === suggested ? -1 : b.id === suggested ? 1 : 0)),
+    [entities, suggested],
+  );
   if (!candidate) return null;
-  // 优先把疑似重复对象排在最前
-  const suggested = candidate.dedupEntityId;
-  const sorted = [...entities].sort((a, b) => (a.id === suggested ? -1 : b.id === suggested ? 1 : 0));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -265,9 +268,9 @@ function CandidateCard({
 
       {c.links && c.links.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {c.links.map(([label, url]) => (
+          {c.links.map(([label, url], i) => (
             <a
-              key={url}
+              key={`${url}-${i}`}
               href={url}
               target="_blank"
               rel="noreferrer"
@@ -446,7 +449,7 @@ export default function CandidateReviewSection({
               c={c}
               canEdit={canEdit}
               dupName={entityName(c.dedupEntityId)}
-              busy={reject.isPending || restore.isPending || promote.isPending || merge.isPending}
+              busy={reject.isPending || restore.isPending || promote.isPending || merge.isPending || score.isPending || batch.isPending}
               onPromote={() => setPromoteTarget(c)}
               onMerge={() => setMergeTarget(c)}
               onReject={() => {

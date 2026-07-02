@@ -8,7 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { DRIZZLE_DATABASE, type Database } from '../../database/database.module';
 import { sources, crawlRuns, candidates, entities, events, sourcingConfig } from '../../database/schema';
 import { and, desc, eq, sql, isNull, inArray, gte, lte } from 'drizzle-orm';
@@ -17,14 +17,14 @@ import { fetchSource } from './fetcher';
 import { closeBrowser } from './browser';
 import { extractCandidates } from './extractor';
 import { scoreCandidates } from './scorer';
+import { normalizeName } from './normalize';
 
-/** 名称规范化：用于候选与已有 entities 去重比对 */
-function normalizeName(s: string): string {
-  return (s || '')
-    .toLowerCase()
-    .normalize('NFKC')
-    .replace(/[\s\-_.|·•,，、@]/g, '')
-    .trim();
+/** 按字节截断（MySQL TEXT 列上限 64KB，中文 UTF-8 3 字节/字，按字符截断会溢出） */
+function truncateBytes(s: string, maxBytes: number): string {
+  const buf = Buffer.from(s || '', 'utf8');
+  if (buf.length <= maxBytes) return s || '';
+  // subarray 可能切断多字节字符 → toString 会补 �，去掉尾部残缺
+  return buf.subarray(0, maxBytes).toString('utf8').replace(/�+$/, '');
 }
 
 @Injectable()
@@ -47,7 +47,7 @@ export class CrawlService implements OnModuleDestroy {
    * 默认关闭，需在 .env 设 CRAWL_WEEKLY_ENABLED=true 才启用——避免无人值守时
    * 突然产生大量抓取/LLM 调用。每周一凌晨 3 点跑，复用 runAll 的串行逻辑。
    */
-  @Cron(CronExpression.EVERY_WEEK)
+  @Cron('0 3 * * 1')
   async weeklyAutoCrawl() {
     if (this.config.get<string>('CRAWL_WEEKLY_ENABLED') !== 'true') return;
     if (!this.llm.available) {
@@ -69,6 +69,16 @@ export class CrawlService implements OnModuleDestroy {
    * 真正的抓取+抽取在后台跑（长名单可能几分钟），前端轮询 run 状态获取结果。
    * 这样避免 HTTP 长连接超时，也不阻塞请求线程。
    */
+  /** 同源是否已有进行中的抓取（防并发重复触发，避免重复候选 + 烧 LLM/浏览器） */
+  private async hasRunningRun(sourceId: string): Promise<boolean> {
+    const rows = await this.db
+      .select({ id: crawlRuns.id })
+      .from(crawlRuns)
+      .where(and(eq(crawlRuns.sourceId, sourceId), eq(crawlRuns.status, 'running')))
+      .limit(1);
+    return rows.length > 0;
+  }
+
   async runSource(sourceId: string) {
     const [src] = await this.db.select().from(sources).where(eq(sources.id, sourceId));
     if (!src) throw new NotFoundException('信息源不存在');
@@ -76,13 +86,18 @@ export class CrawlService implements OnModuleDestroy {
     if (!this.llm.available) {
       throw new ServiceUnavailableException('AI 服务未配置（服务端缺少 AI_API_KEY），无法抽取候选');
     }
+    if (await this.hasRunningRun(sourceId)) {
+      throw new BadRequestException('该信息源正在抓取中，请等当前批次完成后再触发');
+    }
 
     // 建 run 记录（running）
     const runId = crypto.randomUUID();
     await this.db.insert(crawlRuns).values({ id: runId, sourceId, status: 'running' });
 
-    // 后台执行，不 await；失败已在 pipeline 内落库
-    void this.executePipeline(runId, src).catch(() => {});
+    // 后台执行，不 await；异常落日志（pipeline 内已把失败写回 run，此处兜底）
+    void this.executePipeline(runId, src).catch((e) => {
+      this.logger.error(`抓取管线异常(run=${runId})：${e?.message ?? e}`);
+    });
 
     return { runId, status: 'running' as const };
   }
@@ -129,7 +144,7 @@ export class CrawlService implements OnModuleDestroy {
       const priorCandNorms = new Set(priorCands.map((c) => normalizeName(c.name)));
       const seenInBatch = new Set<string>();
 
-      const rows = [];
+      const rows: any[] = [];
       for (const c of extracted) {
         const norm = normalizeName(c.name);
         if (!norm || seenInBatch.has(norm) || priorCandNorms.has(norm)) continue;
@@ -154,32 +169,34 @@ export class CrawlService implements OnModuleDestroy {
         });
       }
 
-      if (rows.length) {
-        await this.db.insert(candidates).values(rows as any);
-      }
-
-      // 4. 收尾：run ok + 推进 source.crawlOffset（断点续抓）
+      // 4. 收尾：候选入库 + run ok + 推进 source.crawlOffset，同一事务保证一致性
       const coveredTo = truncated ? nextOffset : totalChunks;
       const note = truncated
         ? `名单共 ${totalChunks} 段，本次抽到第 ${coveredTo} 段，再次抓取可继续后续`
         : totalChunks > 1
           ? `已覆盖全部 ${totalChunks} 段名单`
           : '';
-      await this.db
-        .update(crawlRuns)
-        .set({
-          status: 'ok',
-          rawText: text.slice(0, 60000),
-          extractedCount: rows.length,
-          error: note || null,
-          finishedAt: new Date(),
-        })
-        .where(eq(crawlRuns.id, runId));
-      await this.db
-        .update(sources)
-        .set({ lastCrawledAt: new Date(), crawlOffset: nextOffset })
-        .where(eq(sources.id, sourceId));
+      await this.db.transaction(async (tx) => {
+        if (rows.length) {
+          await tx.insert(candidates).values(rows as any);
+        }
+        await tx
+          .update(crawlRuns)
+          .set({
+            status: 'ok',
+            rawText: truncateBytes(text, 60000),
+            extractedCount: rows.length,
+            error: note || null,
+            finishedAt: new Date(),
+          })
+          .where(eq(crawlRuns.id, runId));
+        await tx
+          .update(sources)
+          .set({ lastCrawledAt: new Date(), crawlOffset: nextOffset })
+          .where(eq(sources.id, sourceId));
+      });
     } catch (e: any) {
+      this.logger.error(`抓取失败(run=${runId}, source=${sourceId})：${e?.message ?? e}`);
       await this.db
         .update(crawlRuns)
         .set({ status: 'failed', error: String(e?.message ?? e).slice(0, 1000), finishedAt: new Date() })
@@ -220,7 +237,12 @@ export class CrawlService implements OnModuleDestroy {
       .from(crawlRuns)
       .orderBy(desc(crawlRuns.startedAt))
       .limit(limit);
-    const srcMap = new Map((await this.db.select({ id: sources.id, name: sources.name }).from(sources)).map((s) => [s.id, s.name]));
+    // 只查本批 runs 涉及的 source，避免全表扫描
+    const sourceIds = [...new Set(runs.map((r) => r.sourceId))];
+    const srcRows = sourceIds.length
+      ? await this.db.select({ id: sources.id, name: sources.name }).from(sources).where(inArray(sources.id, sourceIds))
+      : [];
+    const srcMap = new Map(srcRows.map((s) => [s.id, s.name]));
     const list = runs.map((r) => ({ ...r, sourceName: srcMap.get(r.sourceId) ?? '(已删除的源)' }));
     return { list, total: list.length };
   }
@@ -234,6 +256,7 @@ export class CrawlService implements OnModuleDestroy {
     const jobs: { runId: string; src: typeof sources.$inferSelect }[] = [];
     for (const s of enabled) {
       if (!s.url) continue; // 未配 URL 的源跳过
+      if (await this.hasRunningRun(s.id)) continue; // 已在抓取中的源跳过，防并发
       const runId = crypto.randomUUID();
       await this.db.insert(crawlRuns).values({ id: runId, sourceId: s.id, status: 'running' });
       jobs.push({ runId, src: s });
@@ -241,14 +264,16 @@ export class CrawlService implements OnModuleDestroy {
     // 后台串行跑，不阻塞请求
     void (async () => {
       for (const j of jobs) {
-        await this.executePipeline(j.runId, j.src).catch(() => {});
+        await this.executePipeline(j.runId, j.src).catch((e) => {
+          this.logger.error(`抓取管线异常(run=${j.runId})：${e?.message ?? e}`);
+        });
       }
     })();
     return { ran: jobs.length, runIds: jobs.map((j) => j.runId) };
   }
 
   /** 候选列表（默认只看 pending，已打分优先、按分降序，未打分按时间） */
-  async listCandidates(status = 'pending') {
+  async listCandidates(status = 'pending', limit = 500, offset = 0) {
     // 校验 status，非法值回退 pending，避免静默返回空列表
     const VALID = ['pending', 'promoted', 'merged', 'rejected', 'all'];
     const st = VALID.includes(status) ? status : 'pending';
@@ -257,7 +282,9 @@ export class CrawlService implements OnModuleDestroy {
       .select()
       .from(candidates)
       .where(where as any)
-      .orderBy(sql`${candidates.aiScore} IS NULL`, desc(candidates.aiScore), desc(candidates.createdAt));
+      .orderBy(sql`${candidates.aiScore} IS NULL`, desc(candidates.aiScore), desc(candidates.createdAt))
+      .limit(limit)
+      .offset(offset);
     return { list, total: list.length };
   }
 
@@ -304,11 +331,13 @@ export class CrawlService implements OnModuleDestroy {
       links: c.links ?? [],
       excluded: false,
     };
-    await this.db.insert(entities).values(merged as any);
-    await this.db
-      .update(candidates)
-      .set({ status: 'promoted', reviewedBy: reviewer ?? null })
-      .where(eq(candidates.id, id));
+    await this.db.transaction(async (tx) => {
+      await tx.insert(entities).values(merged as any);
+      await tx
+        .update(candidates)
+        .set({ status: 'promoted', reviewedBy: reviewer ?? null })
+        .where(eq(candidates.id, id));
+    });
     return { entityId, status: 'promoted' as const };
   }
 
@@ -342,13 +371,15 @@ export class CrawlService implements OnModuleDestroy {
     }
 
     const enriched = Object.keys(patch).length;
-    if (enriched) {
-      await this.db.update(entities).set(patch).where(eq(entities.id, targetEntityId));
-    }
-    await this.db
-      .update(candidates)
-      .set({ status: 'merged', dedupEntityId: targetEntityId, reviewedBy: reviewer ?? null })
-      .where(eq(candidates.id, id));
+    await this.db.transaction(async (tx) => {
+      if (enriched) {
+        await tx.update(entities).set(patch).where(eq(entities.id, targetEntityId));
+      }
+      await tx
+        .update(candidates)
+        .set({ status: 'merged', dedupEntityId: targetEntityId, reviewedBy: reviewer ?? null })
+        .where(eq(candidates.id, id));
+    });
     return { mergedInto: targetEntityId, status: 'merged' as const, enrichedFields: Object.keys(patch) };
   }
 
@@ -435,20 +466,18 @@ export class CrawlService implements OnModuleDestroy {
     return cfg ?? { id: 'default', modules: [], benchmarks: [], scoringRubric: null };
   }
 
-  /** 写采购配置（upsert 单行） */
+  /** 写采购配置（upsert 单行，原子） */
   async updateConfig(data: { modules?: string[]; benchmarks?: string[]; scoringRubric?: string }, updatedBy?: string) {
-    const existing = await this.db.select().from(sourcingConfig).where(eq(sourcingConfig.id, 'default'));
     const values = {
       modules: data.modules ?? [],
       benchmarks: data.benchmarks ?? [],
       scoringRubric: data.scoringRubric ?? null,
       updatedBy: updatedBy ?? null,
     };
-    if (existing.length) {
-      await this.db.update(sourcingConfig).set(values).where(eq(sourcingConfig.id, 'default'));
-    } else {
-      await this.db.insert(sourcingConfig).values({ id: 'default', ...values });
-    }
+    await this.db
+      .insert(sourcingConfig)
+      .values({ id: 'default', ...values })
+      .onDuplicateKeyUpdate({ set: values });
     return this.getConfig();
   }
 
@@ -471,8 +500,20 @@ export class CrawlService implements OnModuleDestroy {
     if (!rows.length) return { scored: 0, total: 0 };
 
     const results = await scoreCandidates(this.llm, cfg, rows);
-    for (const r of results) {
-      await this.db.update(candidates).set({ aiScore: r.score, aiReason: r.reason || null }).where(eq(candidates.id, r.id));
+    // 并发批量回写（每批 5 条），避免逐条 N 次 DB 往返
+    const WRITE_BATCH = 5;
+    for (let i = 0; i < results.length; i += WRITE_BATCH) {
+      await Promise.all(
+        results.slice(i, i + WRITE_BATCH).map((r) =>
+          this.db
+            .update(candidates)
+            .set({ aiScore: r.score, aiReason: r.reason || null })
+            .where(eq(candidates.id, r.id)),
+        ),
+      );
+    }
+    if (results.length < rows.length) {
+      this.logger.warn(`打分部分失败：共 ${rows.length} 条，成功 ${results.length} 条`);
     }
     return { scored: results.length, total: rows.length };
   }

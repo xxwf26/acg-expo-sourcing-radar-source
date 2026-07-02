@@ -7,6 +7,7 @@ import { SlidersHorizontal, Radar, LogOut, Plus, KeyRound, Users } from 'lucide-
 import { useAuth } from '@/lib/auth';
 import { useEvents, useEntities, useSources } from '@/hooks/useRadarData';
 import { useEngagements } from '@/hooks/useEngagement';
+import { useCrawlRunNotifications } from '@/hooks/useCrawl';
 import { useEventMutations, useSourceMutations } from '@/hooks/useCrudMutations';
 import FilterPanelSection, { DEFAULT_FILTERS, type FilterState } from './FilterPanelSection';
 import EntityGridSection from './EntityGridSection';
@@ -110,6 +111,8 @@ export default function RadarDashboardPage() {
   const entitiesQuery = useEntities();
   const sourcesQuery = useSources();
   const engagementsQuery = useEngagements();
+  // 全局抓取完成通知（run 从 running→ok/failed 时弹 toast）
+  useCrawlRunNotifications();
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [view, setView] = useState<ViewKey>('entities');

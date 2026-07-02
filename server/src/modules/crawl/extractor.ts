@@ -1,4 +1,5 @@
 import { LlmClient } from '../ai/llm.client';
+import { normalizeName } from './normalize';
 
 /** LLM 抽出的单条候选（字段对齐 candidates 表） */
 export interface ExtractedCandidate {
@@ -82,7 +83,8 @@ export async function extractCandidates(
   let model = '';
   let failedChunks = 0;
 
-  for (const chunk of chunks) {
+  // 分块并发抽取（限并发 3，兼顾速度与中转压力），单块失败跳过不拖垮整轮
+  const results = await mapPool(chunks, 3, async (chunk) => {
     const userMsg = `## 来源
 信息源：${ctx.sourceName || '未命名'}${ctx.eventShort ? `（展会：${ctx.eventShort}）` : ''}
 
@@ -92,21 +94,23 @@ ${chunk}
 """
 
 请抽取候选并按要求输出 JSON 数组。`;
-
-    // 单块失败（超时/解析）不拖垮整轮：跳过该块继续，已抽到的照常入库
-    let res;
     try {
       // 小块 + 适中 max_tokens：thinking + JSON 都放得下，又不触发中转 upstream 超时
-      res = await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000);
+      return { res: await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000) };
     } catch {
+      return { failed: true as const };
+    }
+  });
+
+  for (const r of results) {
+    if ('failed' in r) {
       failedChunks += 1;
       continue;
     }
-    model = res.model;
-    for (const [k, v] of Object.entries(res.usage || {})) usage[k] = (usage[k] || 0) + (v as number);
-
-    for (const c of parseCandidates(res.content)) {
-      const key = c.name.toLowerCase().replace(/\s+/g, '');
+    model = r.res.model;
+    for (const [k, v] of Object.entries(r.res.usage || {})) usage[k] = (usage[k] || 0) + (v as number);
+    for (const c of parseCandidates(r.res.content)) {
+      const key = normalizeName(c.name); // 与 crawl.service 跨表去重同口径
       if (!key || seen.has(key)) continue;
       seen.add(key);
       all.push(c);
@@ -122,6 +126,20 @@ ${chunk}
     nextOffset,
     totalChunks: allChunks.length,
   };
+}
+
+/** 简单并发池：最多 concurrency 个任务同时跑，保持结果顺序 */
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const ret: R[] = new Array(items.length);
+  let idx = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (idx < items.length) {
+      const i = idx++;
+      ret[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return ret;
 }
 
 /** 按字符数切块，尽量在换行处断开，避免把一条名单从中间劈开 */

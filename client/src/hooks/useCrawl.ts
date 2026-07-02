@@ -1,24 +1,12 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { crawlApi } from '@/api/crawl';
-import type { ICrawlRun, IPromotePayload, ISourcingConfig } from '@/api/types';
+import type { IPromotePayload, ISourcingConfig } from '@/api/types';
 
-function errMsg(e: any, fallback: string): string {
-  return e?.response?.data?.message || fallback;
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** 触发抓取后轮询 run 状态直到结束（后台抓取长名单可能几分钟） */
-async function runAndWait(sourceId: string): Promise<ICrawlRun> {
-  const { runId } = await crawlApi.run(sourceId);
-  // 最多轮询 ~12 分钟（4s × 180）
-  for (let i = 0; i < 180; i++) {
-    await sleep(4000);
-    const run = await crawlApi.getRun(runId);
-    if (run.status !== 'running') return run;
-  }
-  throw new Error('抓取超时（后台仍可能在继续，稍后刷新候选查看）');
+function errMsg(e: unknown, fallback: string): string {
+  const err = e as { response?: { data?: { message?: string } } };
+  return err?.response?.data?.message || fallback;
 }
 
 /** 候选列表（按状态） */
@@ -39,7 +27,7 @@ export function useCandidateCounts() {
   });
 }
 
-/** 近期抓取批次历史。有进行中批次时自动轮询刷新。 */
+/** 近期抓取批次历史。有进行中批次时自动轮询刷新（唯一的进度轮询来源）。 */
 export function useCrawlRuns() {
   return useQuery({
     queryKey: ['crawl-runs'],
@@ -48,6 +36,36 @@ export function useCrawlRuns() {
     refetchInterval: (query) =>
       (query.state.data?.list || []).some((r) => r.status === 'running') ? 5000 : false,
   });
+}
+
+/**
+ * 全局抓取完成通知：监听 runs 列表，run 从 running → ok/failed 时弹 toast。
+ * 首次见到的 run 只记录不弹（避免页面加载时对历史 run 刷屏）。
+ * 在常驻的 RadarDashboardPage 调用一次即可全局生效。
+ */
+export function useCrawlRunNotifications() {
+  const { data } = useCrawlRuns();
+  const seen = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    const list = data?.list || [];
+    for (const r of list) {
+      const prev = seen.current.get(r.id);
+      if (prev === undefined) {
+        seen.current.set(r.id, r.status);
+        continue;
+      }
+      if (prev === 'running' && r.status !== 'running') {
+        if (r.status === 'ok') {
+          const n = r.extractedCount ?? 0;
+          const partial = r.error ? `（${r.error}）` : '';
+          toast.success(`抓取完成：新增 ${n} 个候选${partial}`);
+        } else {
+          toast.error(`抓取失败：${r.error || '未知错误'}`);
+        }
+      }
+      seen.current.set(r.id, r.status);
+    }
+  }, [data]);
 }
 
 /** 采购匹配配置 */
@@ -69,53 +87,18 @@ export function useCrawlMutations() {
     qc.invalidateQueries({ queryKey: ['sources'] });
   };
 
+  // 抓取触发即返回（后台异步），进度与完成通知由 useCrawlRuns + useCrawlRunNotifications 负责，
+  // 不再用阻塞式 runAndWait（避免 12 分钟不可取消的 mutation + 双重轮询）。
   const run = useMutation({
-    mutationFn: (sourceId: string) => runAndWait(sourceId),
-    onSuccess: (run) => {
-      invalidate();
-      if (run.status === 'ok') {
-        const n = run.extractedCount ?? 0;
-        const partial = run.error ? `（${run.error}）` : '';
-        toast.success(`抓取完成：新增 ${n} 个候选${partial}`);
-      } else {
-        toast.error(`抓取失败：${run.error || '未知错误'}`);
-      }
-    },
-    onError: (e) => toast.error(errMsg(e, '抓取失败')),
+    mutationFn: (sourceId: string) => crawlApi.run(sourceId),
+    onSuccess: () => toast.success('抓取已开始，进度见「抓取历史」'),
+    onError: (e) => toast.error(errMsg(e, '抓取触发失败')),
   });
 
   const runAll = useMutation({
-    mutationFn: async () => {
-      const { runIds } = await crawlApi.runAll();
-      // 等所有 run 结束，逐个统计结果（超时/未结束记为 timeout）
-      const runs = await Promise.all(
-        runIds.map(async (id) => {
-          for (let i = 0; i < 180; i++) {
-            await sleep(4000);
-            const r = await crawlApi.getRun(id);
-            if (r.status !== 'running') return r;
-          }
-          return null; // 轮询到上限仍 running
-        }),
-      );
-      const ok = runs.filter((r) => r?.status === 'ok').length;
-      const failed = runs.filter((r) => r?.status === 'failed').length;
-      const pending = runs.filter((r) => !r).length; // 超时未结束
-      const added = runs.reduce((s, r) => s + (r?.status === 'ok' ? r.extractedCount ?? 0 : 0), 0);
-      return { total: runIds.length, ok, failed, pending, added };
-    },
-    onSuccess: (res) => {
-      invalidate();
-      if (res.failed === 0 && res.pending === 0) {
-        toast.success(`抓取完成：${res.ok} 个源，新增 ${res.added} 个候选`);
-      } else {
-        const parts = [`成功 ${res.ok}`];
-        if (res.failed) parts.push(`失败 ${res.failed}`);
-        if (res.pending) parts.push(`仍在后台 ${res.pending}`);
-        toast(`抓取结束：${parts.join(' / ')}（共 ${res.total} 源，新增 ${res.added} 候选）`);
-      }
-    },
-    onError: (e) => toast.error(errMsg(e, '批量抓取失败')),
+    mutationFn: async () => crawlApi.runAll(),
+    onSuccess: (res) => toast.success(`已触发 ${res.ran} 个源的抓取，进度见「抓取历史」`),
+    onError: (e) => toast.error(errMsg(e, '批量抓取触发失败')),
   });
 
   const promote = useMutation({

@@ -5,6 +5,7 @@ import { ENGAGEMENT_STATUS_OPTIONS } from '@/lib/filterConfig';
 import { ENGAGEMENT_STATUS_STYLE } from '@/lib/badgeStyles';
 import { TYPE_LABELS } from '@/lib/filterConfig';
 import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import type { IEntity, IEngagement, IEvent } from '@/api/types';
 
 /** CSV 字段转义：含逗号/引号/换行则包引号并转义内部引号 */
@@ -79,6 +80,7 @@ export default function EngagementBoardSection({
     a.download = `建联对象导出_${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success(`已导出 ${visible.length} 条建联对象`);
   };
 
   return (

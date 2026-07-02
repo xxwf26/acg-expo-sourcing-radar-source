@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search, ExternalLink, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -38,6 +38,9 @@ export default function ContactFinder({ name, region }: ContactFinderProps) {
   // 默认查询词用名称；地区作为可叠加的辅助词（部分平台叠地区反而搜不到，故默认只用名称）
   const [withRegion, setWithRegion] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number | null>(null);
+  // 卸载时清理复制态定时器，避免 setState on unmounted
+  useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current); }, []);
 
   const query = withRegion && region ? `${name} ${region}` : name;
 
@@ -45,7 +48,8 @@ export default function ContactFinder({ name, region }: ContactFinderProps) {
     try {
       await navigator.clipboard.writeText(query);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = window.setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error('复制失败，请手动选择');
     }
