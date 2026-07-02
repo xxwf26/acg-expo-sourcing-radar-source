@@ -52,13 +52,14 @@ function PromoteDialog({
   const [region, setRegion] = useState('');
   const [booth, setBooth] = useState('');
 
-  // 打开时用候选值初始化表单
+  // 打开时用候选值初始化表单；分数/优先级尽量沿用 AI 打分结果
   useEffect(() => {
     if (open && candidate) {
+      const s = candidate.aiScore ?? 60;
       setName(candidate.name);
       setType(candidate.type);
-      setPriority('B');
-      setScore(60);
+      setPriority(s >= 90 ? 'S' : s >= 70 ? 'A' : 'B');
+      setScore(s);
       setRegion(candidate.region || '');
       setBooth(candidate.booth || '');
     }
@@ -188,6 +189,7 @@ function CandidateCard({
   c,
   canEdit,
   dupName,
+  busy,
   onPromote,
   onMerge,
   onReject,
@@ -196,6 +198,7 @@ function CandidateCard({
   c: ICandidate;
   canEdit: boolean;
   dupName?: string;
+  busy?: boolean;
   onPromote: () => void;
   onMerge: () => void;
   onReject: () => void;
@@ -286,15 +289,15 @@ function CandidateCard({
 
       {isPending && canEdit && (
         <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
-          <Button size="sm" onClick={onPromote}>
+          <Button size="sm" onClick={onPromote} disabled={busy}>
             <Check className="size-4" />
             转正
           </Button>
-          <Button variant="outline" size="sm" onClick={onMerge}>
+          <Button variant="outline" size="sm" onClick={onMerge} disabled={busy}>
             <GitMerge className="size-4" />
             合并到已有
           </Button>
-          <Button variant="outline" size="sm" onClick={onReject} className="text-destructive hover:bg-destructive/5">
+          <Button variant="outline" size="sm" onClick={onReject} disabled={busy} className="text-destructive hover:bg-destructive/5">
             <Trash2 className="size-4" />
             丢弃
           </Button>
@@ -304,7 +307,7 @@ function CandidateCard({
       {/* 已丢弃/已合并可一键恢复到待复核（软删除的反操作，防误操作） */}
       {!isPending && canEdit && c.status !== 'promoted' && (
         <div className="mt-3 border-t pt-3">
-          <Button variant="outline" size="sm" onClick={onRestore}>
+          <Button variant="outline" size="sm" onClick={onRestore} disabled={busy}>
             <RotateCcw className="size-4" />
             恢复到待复核
           </Button>
@@ -411,6 +414,7 @@ export default function CandidateReviewSection({
               c={c}
               canEdit={canEdit}
               dupName={entityName(c.dedupEntityId)}
+              busy={reject.isPending || restore.isPending || promote.isPending || merge.isPending}
               onPromote={() => setPromoteTarget(c)}
               onMerge={() => setMergeTarget(c)}
               onReject={() => {

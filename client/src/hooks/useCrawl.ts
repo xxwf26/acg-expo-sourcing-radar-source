@@ -87,21 +87,33 @@ export function useCrawlMutations() {
   const runAll = useMutation({
     mutationFn: async () => {
       const { runIds } = await crawlApi.runAll();
-      // 等所有 run 结束
-      await Promise.all(
+      // 等所有 run 结束，逐个统计结果（超时/未结束记为 timeout）
+      const runs = await Promise.all(
         runIds.map(async (id) => {
           for (let i = 0; i < 180; i++) {
             await sleep(4000);
             const r = await crawlApi.getRun(id);
             if (r.status !== 'running') return r;
           }
+          return null; // 轮询到上限仍 running
         }),
       );
-      return { ran: runIds.length };
+      const ok = runs.filter((r) => r?.status === 'ok').length;
+      const failed = runs.filter((r) => r?.status === 'failed').length;
+      const pending = runs.filter((r) => !r).length; // 超时未结束
+      const added = runs.reduce((s, r) => s + (r?.status === 'ok' ? r.extractedCount ?? 0 : 0), 0);
+      return { total: runIds.length, ok, failed, pending, added };
     },
     onSuccess: (res) => {
       invalidate();
-      toast.success(`已完成 ${res.ran} 个信息源的抓取`);
+      if (res.failed === 0 && res.pending === 0) {
+        toast.success(`抓取完成：${res.ok} 个源，新增 ${res.added} 个候选`);
+      } else {
+        const parts = [`成功 ${res.ok}`];
+        if (res.failed) parts.push(`失败 ${res.failed}`);
+        if (res.pending) parts.push(`仍在后台 ${res.pending}`);
+        toast(`抓取结束：${parts.join(' / ')}（共 ${res.total} 源，新增 ${res.added} 候选）`);
+      }
     },
     onError: (e) => toast.error(errMsg(e, '批量抓取失败')),
   });

@@ -220,9 +220,12 @@ export class CrawlService implements OnModuleDestroy {
     return { ran: jobs.length, runIds: jobs.map((j) => j.runId) };
   }
 
-  /** 候选列表（默认只看 pending，按创建时间倒序） */
+  /** 候选列表（默认只看 pending，已打分优先、按分降序，未打分按时间） */
   async listCandidates(status = 'pending') {
-    const where = status === 'all' ? undefined : eq(candidates.status, status);
+    // 校验 status，非法值回退 pending，避免静默返回空列表
+    const VALID = ['pending', 'promoted', 'merged', 'rejected', 'all'];
+    const st = VALID.includes(status) ? status : 'pending';
+    const where = st === 'all' ? undefined : eq(candidates.status, st);
     const list = await this.db
       .select()
       .from(candidates)
@@ -262,8 +265,9 @@ export class CrawlService implements OnModuleDestroy {
       name: patch.name ?? c.name,
       type: patch.type ?? c.type ?? 'creatorKol',
       priority: patch.priority ?? 'B',
-      score: patch.score ?? 60,
-      events: c.eventId ? [c.eventId] : (patch.events ?? []),
+      score: patch.score ?? c.aiScore ?? 60,
+      // 复核人显式传的 events 优先；否则用候选归属的展会
+      events: patch.events ?? (c.eventId ? [c.eventId] : []),
       region: patch.region ?? c.region ?? null,
       booth: patch.booth ?? c.booth ?? null,
       followerScale: patch.followerScale ?? c.followerScale ?? null,
