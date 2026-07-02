@@ -235,15 +235,17 @@ export default function RadarDashboardPage() {
             </Button>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setPwdModalOpen(true)} className="h-7 px-2 text-xs">
-              <KeyRound className="size-3.5" />
-              改密码
-            </Button>
             {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={() => setUserModalOpen(true)} className="h-7 px-2 text-xs">
-                <Users className="size-3.5" />
-                账号管理
-              </Button>
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setPwdModalOpen(true)} className="h-7 px-2 text-xs">
+                  <KeyRound className="size-3.5" />
+                  改密码
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setUserModalOpen(true)} className="h-7 px-2 text-xs">
+                  <Users className="size-3.5" />
+                  账号管理
+                </Button>
+              </>
             )}
           </div>
         </div>

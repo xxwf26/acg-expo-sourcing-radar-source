@@ -1,6 +1,8 @@
 import { Controller, Post, Put, Get, Body, HttpException, HttpStatus, UnauthorizedException, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
+import { Roles } from './roles.decorator';
 import { RateLimiter } from '../../common/rate-limiter';
 
 @Controller('/api/auth')
@@ -29,9 +31,10 @@ export class AuthController {
     return { user: req.user };
   }
 
-  // 自助改密：任何登录用户可改自己的密码
+  // 自助改密：仅 admin 可改自己的密码（viewer 由 admin 在「账号管理」重置）
   @Put('password')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async changePassword(
     @Request() req: any,
     @Body() body: { oldPassword: string; newPassword: string },
