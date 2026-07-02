@@ -1,11 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { userApi } from '@/api/user';
+import { getErrMsg as errMsg } from '@/lib/utils';
 import type { IUser, UserRole } from '@/api/types';
-
-function errMsg(e: any, fallback: string): string {
-  return e?.response?.data?.message || fallback;
-}
 
 export function useUsers(enabled = true) {
   return useQuery({

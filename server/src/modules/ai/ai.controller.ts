@@ -51,11 +51,4 @@ export class AiController {
     const history: ChatMessage[] = (dto.history ?? []).map((h) => ({ role: h.role, content: h.content }));
     return this.aiService.chat(dto.message, history);
   }
-
-  /** 本周建议动作（AI 动态生成，按三类标注；后端 10 分钟 TTL 缓存） */
-  @Post('weekly-actions')
-  async weeklyActions(@Req() req: any) {
-    this.ensureLimit(req, 10, 60_000);
-    return this.aiService.weeklyActions();
-  }
 }

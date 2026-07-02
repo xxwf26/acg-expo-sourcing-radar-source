@@ -3,13 +3,8 @@ import { toast } from 'sonner';
 import { entityApi } from '@/api/entity';
 import { eventApi } from '@/api/event';
 import { sourceApi } from '@/api/source';
+import { getErrMsg as errMsg } from '@/lib/utils';
 import type { IEntity, IEvent, ISource } from '@/api/types';
-
-// 提取后端返回的错误信息（引用保护/校验失败等）
-function errMsg(e: unknown, fallback: string): string {
-  const err = e as { response?: { data?: { message?: string } } };
-  return err?.response?.data?.message || fallback;
-}
 
 // ---------------- entities ----------------
 export function useEntityMutations() {

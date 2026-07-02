@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { authApi } from '@/api/user';
 import { useAuth } from '@/lib/auth';
+import { getErrMsg } from '@/lib/utils';
 
 // 自助改密弹窗：任何登录用户可用。改成功后强制重新登录（token 不变但密码已换，登出最稳妥）。
 export default function ChangePasswordModal({
@@ -49,7 +50,7 @@ export default function ChangePasswordModal({
       onOpenChange(false);
       logout();
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || '修改失败');
+      toast.error(getErrMsg(e, '修改失败'));
     } finally {
       setSaving(false);
     }

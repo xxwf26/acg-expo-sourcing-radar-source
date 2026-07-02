@@ -3,7 +3,7 @@ import { DRIZZLE_DATABASE, type Database } from '../../database/database.module'
 import { entities, engagements, events, sources } from '../../database/schema';
 import { eq, desc } from 'drizzle-orm';
 import { LlmClient } from './llm.client';
-import { buildEntitySummaryPrompt, buildChatPrompt, buildWeeklyActionsPrompt } from './prompts';
+import { buildEntitySummaryPrompt, buildChatPrompt } from './prompts';
 
 export interface AiSummaryResult {
   scenario: string;
@@ -113,32 +113,6 @@ export class AiService {
       content: result.content,
       usage: result.usage,
     };
-  }
-
-  /** 本周建议动作（AI 动态生成，按 数据判定/规范/AI建议 三类标注）。
-   *  结果随库变化慢，做 10 分钟 TTL 缓存，省成本+提速。 */
-  private weeklyCache: { result: AiChatResult; exp: number } | null = null;
-  private readonly WEEKLY_TTL_MS = 10 * 60 * 1000;
-
-  async weeklyActions(): Promise<AiChatResult> {
-    const now = Date.now();
-    if (this.weeklyCache && this.weeklyCache.exp > now) {
-      return this.weeklyCache.result;
-    }
-    if (!this.llm.available) {
-      throw new ServiceUnavailableException('AI 服务未配置（服务端缺少 AI_API_KEY）');
-    }
-    const snapshot = await this.buildDbSnapshot();
-    const { system, messages } = buildWeeklyActionsPrompt(snapshot);
-    const result = await this.callLlm(system, messages);
-    const out: AiChatResult = {
-      scenario: 'weekly-actions',
-      model: result.model,
-      content: result.content,
-      usage: result.usage,
-    };
-    this.weeklyCache = { result: out, exp: now + this.WEEKLY_TTL_MS };
-    return out;
   }
 
   /** 全库快照：喂给聊天的上下文（控制字段粒度，避免 token 爆炸）。
