@@ -29,6 +29,10 @@ async function bootstrap() {
           objectSrc: ["'none'"],
           frameAncestors: ["'self'"],
           baseUri: ["'self'"],
+          // 关闭 upgrade-insecure-requests：本应用子资源均为同源相对路径或已 https，
+          // 无需升级；且本地/内网常以纯 HTTP 部署，开启会把 http 子资源强制升 https
+          // 导致 JS 加载失败白屏。HTTPS 部署也不受影响（无 http 子资源）。
+          upgradeInsecureRequests: null,
         },
       },
     }),
