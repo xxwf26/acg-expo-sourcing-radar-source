@@ -74,8 +74,10 @@ export async function scoreCandidates(
     try {
       const res = await llm.chat(system, [{ role: 'user', content: userMsg }], 6000);
       for (const r of parseScores(res.content)) out.push(r);
-    } catch {
-      // 该批失败跳过
+    } catch (e) {
+      // 该批失败跳过，记录便于排查
+      // eslint-disable-next-line no-console
+      console.warn('[scorer] 批次打分失败，已跳过', batch.length, '条：', (e as Error)?.message);
     }
   }
   return out;

@@ -26,9 +26,11 @@ export class SourceService {
   async update(id: string, data: Record<string, any>) {
     const existing = await this.findOne(id);
     if (!existing) throw new NotFoundException('信息源不存在');
+    // 白名单过滤，避免透传 id/createdAt/lastCrawledAt 等不可写字段
+    const ALLOWED = ['name', 'cadence', 'fields', 'links', 'sortOrder', 'url', 'strategy', 'selector', 'eventId', 'enabled'];
     const patch: Record<string, any> = {};
-    for (const [k, v] of Object.entries(data)) {
-      if (v !== undefined) patch[k] = v;
+    for (const k of ALLOWED) {
+      if (data[k] !== undefined) patch[k] = data[k];
     }
     if (Object.keys(patch).length > 0) {
       await this.db.update(sources).set(patch).where(eq(sources.id, id));

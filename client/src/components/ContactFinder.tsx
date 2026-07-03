@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ExternalLink, Copy, Check, Plus, Trash2, ShieldCheck, Mail, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,6 +106,9 @@ export default function ContactFinder({ entity, canEdit = false }: ContactFinder
   const [open, setOpen] = useState(false);
   const [withRegion, setWithRegion] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number | null>(null);
+  // 卸载时清理复制态定时器，避免 setState on unmounted
+  useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current); }, []);
 
   // 新增联系方式的草稿
   const [draftChannel, setDraftChannel] = useState('email');
@@ -127,7 +130,8 @@ export default function ContactFinder({ entity, canEdit = false }: ContactFinder
     try {
       await navigator.clipboard.writeText(query);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = window.setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error('复制失败，请手动选择');
     }

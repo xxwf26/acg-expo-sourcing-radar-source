@@ -11,19 +11,19 @@
 - **注入**：Drizzle 全参数化，无裸 SQL 拼接；关键词搜索已转义 LIKE 通配符。
 - **Mass-assignment**：全局 `ValidationPipe({ whitelist: true })`，DTO 未声明字段被剥离。
 - **XSS**：AI 输出用 react-markdown 且未启用 rehype-raw，不渲染裸 HTML；无 `dangerouslySetInnerHTML`/`eval`。
-- **SSRF**：抓取层 `url-guard` 校验协议 + DNS 解析后逐 IP 拦私有/保留段，重定向手动逐跳复校验。
+- **SSRF**：抓取层 `fetcher.ts` 校验协议 + DNS 解析后逐 IP 拦私有/保留段，重定向手动逐跳复校验。
 
 ## 已实施的加固
 
 | 项 | 说明 | 位置 |
 |---|---|---|
-| SSRF 防护 | 抓取 URL 协议 + 私有 IP 拦截 + 逐跳重定向校验 | `crawl/url-guard.ts` |
+| SSRF 防护 | 抓取 URL 协议 + 私有 IP 拦截 + 逐跳重定向校验 + 瞬时错误重试 | `crawl/fetcher.ts` |
 | 默认口令 | seed 初始口令改从 env 读，无则随机生成，不再硬编码 | `database/seed-users.ts` |
 | CSV 公式注入 | 导出单元格 `=+-@` 等开头加前导单引号中和 | `EngagementBoardSection.tsx` |
 | 安全响应头 | helmet（X-Frame-Options / nosniff / HSTS 等） | `main.ts` |
 | 全局异常过滤 | 非预期 5xx 对外泛化 + 关联 ID，细节只进日志 | `common/filters/all-exceptions.filter.ts` |
 | 改密限流 | `PUT /api/auth/password` 按用户 10 次/分 | `auth/auth.controller.ts` |
-| 抓取大小上限 | 响应体流式读取超 10MB 中止，防 OOM DoS | `crawl/url-guard.ts` `readCapped` |
+| 抓取大小上限 | 响应体流式读取超上限(HTML 20MB/PDF 50MB)中止，防 OOM DoS | `crawl/fetcher.ts` `safeFetch` |
 | 登录限流 | 按 IP 5 次/分 | `auth/auth.controller.ts` |
 | CSP | helmet 精调 CSP：default-src 'self'，img 放行 s.wordpress.com，style 'unsafe-inline' | `main.ts` |
 | auth 入参校验 | login/改密改用 LoginDto/ChangePasswordDto（class-validator），拒畸形/超长 payload | `auth/auth.dto.ts` |
