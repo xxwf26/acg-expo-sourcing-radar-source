@@ -96,8 +96,9 @@ ${chunk}
 
 请抽取候选并按要求输出 JSON 数组。`;
     try {
-      // 小块 + 适中 max_tokens：thinking + JSON 都放得下，又不触发中转 upstream 超时
-      return { res: await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000) };
+      // 小块 + 适中 max_tokens：thinking + JSON 都放得下，又不触发中转 upstream 超时。
+      // 抽取用更短超时(60s) + 少重试(1 次)：中转对大请求不稳时快速失败，不把整轮拖到十几分钟。
+      return { res: await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 60_000, maxRetries: 1 }) };
     } catch {
       return { failed: true as const };
     }

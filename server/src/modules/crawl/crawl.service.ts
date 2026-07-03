@@ -117,6 +117,39 @@ export class CrawlService implements OnModuleDestroy {
     }
     this.runningSources.add(sourceId);
     try {
+      // 总体超时：抽取卡住(中转对大请求不稳)时，整条管线最多跑 5 分钟即失败退出，
+      // 避免 run 永远 running 把该源锁死(finally 才释放 runningSources)。
+      await this.withTimeout(
+        this.runPipelineBody(runId, src),
+        5 * 60_000,
+        '抓取管线超时（5 分钟）——可能是名单页过大或中转不稳，已终止；可稍后重试或改小抓取范围',
+      );
+    } catch (e: any) {
+      this.logger.error(`抓取失败(run=${runId}, source=${sourceId})：${e?.message ?? e}`);
+      await this.db
+        .update(crawlRuns)
+        .set({ status: 'failed', error: String(e?.message ?? e).slice(0, 1000), finishedAt: new Date() })
+        .where(eq(crawlRuns.id, runId));
+    } finally {
+      this.runningSources.delete(sourceId);
+    }
+  }
+
+  /** 给 Promise 套总体超时；超时后 reject（注意底层任务仍在后台跑完，但不再阻塞锁释放） */
+  private withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(msg)), ms);
+      p.then(
+        (v) => { clearTimeout(timer); resolve(v); },
+        (e) => { clearTimeout(timer); reject(e); },
+      );
+    });
+  }
+
+  /** 抓取管线主体：抓取 → 抽取 → 去重 → 落候选。被 executePipeline 套超时调用。 */
+  private async runPipelineBody(runId: string, src: typeof sources.$inferSelect) {
+    const sourceId = src.id;
+    {
       // 1. 抓取
       const { text, bytes } = await fetchSource({
         url: src.url!,
@@ -206,14 +239,6 @@ export class CrawlService implements OnModuleDestroy {
           .set({ lastCrawledAt: new Date(), crawlOffset: nextOffset })
           .where(eq(sources.id, sourceId));
       });
-    } catch (e: any) {
-      this.logger.error(`抓取失败(run=${runId}, source=${sourceId})：${e?.message ?? e}`);
-      await this.db
-        .update(crawlRuns)
-        .set({ status: 'failed', error: String(e?.message ?? e).slice(0, 1000), finishedAt: new Date() })
-        .where(eq(crawlRuns.id, runId));
-    } finally {
-      this.runningSources.delete(sourceId);
     }
   }
 

@@ -38,22 +38,32 @@ export class LlmClient implements OnModuleInit {
   }
 
   /** 非流式调用：返回拼接后的正文 + 用量。丢弃 thinking 块。瞬时错误自动重试。
-   *  maxTokens 可选覆盖（抽取长名单时需给足，否则 thinking 会吃光默认额度导致正文为空）。 */
+   *  maxTokens 可选覆盖（抽取长名单时需给足，否则 thinking 会吃光默认额度导致正文为空）。
+   *  opts 可选覆盖单次调用的超时/重试次数：抓取抽取/打分用更短超时 + 少重试，
+   *  避免中转对大请求不稳时「90s×3 次×多块」把整条管线拖到十几分钟。聊天/总结不传，走默认。 */
   async chat(
     system: string,
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
     maxTokens?: number,
+    opts?: { timeoutMs?: number; maxRetries?: number },
   ): Promise<{ content: string; model: string; usage: Record<string, number> }> {
     if (!this.client) {
       throw new Error('AI 服务未配置（缺少 AI_API_KEY）');
     }
-    const res = await this.callWithRetry(() =>
-      this.client.messages.create({
-        model: this.model,
-        max_tokens: maxTokens ?? this.maxTokens,
-        system,
-        messages,
-      }),
+    const maxAttempts = (opts?.maxRetries ?? 2) + 1; // 默认 3 次（2 次重试）
+    const res = await this.callWithRetry(
+      () =>
+        this.client.messages.create(
+          {
+            model: this.model,
+            max_tokens: maxTokens ?? this.maxTokens,
+            system,
+            messages,
+          },
+          // 单次请求超时：opts 优先，否则用客户端默认（90s）
+          opts?.timeoutMs ? { timeout: opts.timeoutMs } : undefined,
+        ),
+      maxAttempts,
     );
     const text = (res.content ?? [])
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -67,9 +77,8 @@ export class LlmClient implements OnModuleInit {
     return { content: text, model: res.model, usage: res.usage as unknown as Record<string, number> };
   }
 
-  /** 对瞬时错误（429/超时/5xx/连接错误）做 2 次指数退避重试 */
-  private async callWithRetry<T>(fn: () => Promise<T>): Promise<T> {
-    const maxAttempts = 3;
+  /** 对瞬时错误（429/超时/5xx/连接错误）做重试。maxAttempts 含首次尝试。 */
+  private async callWithRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
     let lastErr: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
