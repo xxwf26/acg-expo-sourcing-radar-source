@@ -2,6 +2,7 @@ import { Controller, Post, Put, Get, Body, HttpException, HttpStatus, Unauthoriz
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RateLimiter } from '../../common/rate-limiter';
+import { LoginDto, ChangePasswordDto } from './auth.dto';
 
 @Controller('/api/auth')
 export class AuthController {
@@ -11,7 +12,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() body: { username: string; password: string; rememberMe?: boolean }, @Request() req: any) {
+  async login(@Body() body: LoginDto, @Request() req: any) {
     // 按 IP 限流防暴力破解：5 次/分钟
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
     if (!this.limiter.consume(`login:${ip}`, 5, 60_000)) {
@@ -34,8 +35,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async changePassword(
     @Request() req: any,
-    @Body() body: { oldPassword: string; newPassword: string },
+    @Body() body: ChangePasswordDto,
   ) {
+    // 按用户限流防旧密码爆破：10 次/分钟
+    if (!this.limiter.consume(`chpwd:${req.user.userId}`, 10, 60_000)) {
+      throw new HttpException('操作过于频繁，请稍后再试', HttpStatus.TOO_MANY_REQUESTS);
+    }
     return this.authService.changePassword(req.user.userId, body.oldPassword, body.newPassword);
   }
 }

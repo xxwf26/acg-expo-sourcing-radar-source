@@ -101,3 +101,37 @@ export async function safeFetch(
   }
   throw new Error('重定向次数过多');
 }
+
+/** 抓取响应体默认大小上限：10MB。防止误配/恶意超大响应把 Node 撑爆(OOM DoS)。 */
+export const MAX_FETCH_BYTES = 10 * 1024 * 1024;
+
+/**
+ * 带大小上限地读取响应体为 Buffer。
+ * - 先看 Content-Length，声明超限直接拒绝（省流量）
+ * - 无论声明与否，流式累计字节，超限即中止（防谎报 Content-Length）
+ */
+export async function readCapped(res: Response, maxBytes = MAX_FETCH_BYTES): Promise<Buffer> {
+  const declared = Number(res.headers.get('content-length') || '0');
+  if (declared && declared > maxBytes) {
+    throw new Error(`响应体过大（声明 ${declared} 字节 > 上限 ${maxBytes}）`);
+  }
+  if (!res.body) {
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > maxBytes) throw new Error(`响应体过大（>${maxBytes} 字节）`);
+    return buf;
+  }
+  const reader = res.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new Error(`响应体过大（>${maxBytes} 字节），已中止抓取`);
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks);
+}

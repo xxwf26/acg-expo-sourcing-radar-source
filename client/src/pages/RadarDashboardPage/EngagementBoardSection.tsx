@@ -7,9 +7,13 @@ import { TYPE_LABELS } from '@/lib/filterConfig';
 import { Download } from 'lucide-react';
 import type { IEntity, IEngagement, IEvent } from '@/api/types';
 
-/** CSV 字段转义：含逗号/引号/换行则包引号并转义内部引号 */
+/** CSV 字段转义：
+ *  ① 防公式注入——=+-@ 或制表/回车开头的值，Excel/Sheets 会当公式执行，
+ *     加前导单引号中和（导出内容可能来自抓取的网页正文，属不可信来源）。
+ *  ② 含逗号/引号/换行则包引号并转义内部引号。 */
 function csvCell(v: unknown): string {
-  const s = v == null ? '' : String(v);
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

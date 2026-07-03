@@ -1,6 +1,6 @@
 import { load } from 'cheerio';
 import { renderPage } from './browser';
-import { assertSafeUrl, safeFetch } from './url-guard';
+import { assertSafeUrl, safeFetch, readCapped } from './url-guard';
 
 export interface FetchResult {
   /** 清洗后的纯文本（去脚本/样式，压缩空白），喂给 LLM 的原料 */
@@ -62,7 +62,7 @@ async function fetchStatic(url: string, selector?: string | null): Promise<Fetch
     if (!res.ok) {
       throw new Error(`HTTP ${res.status} ${res.statusText}`);
     }
-    html = await res.text();
+    html = (await readCapped(res)).toString('utf8');
   } finally {
     clearTimeout(timer);
   }
@@ -81,7 +81,7 @@ async function fetchPdf(url: string): Promise<FetchResult> {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ACGSourcingRadar/1.0; +internal sourcing tool)' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    buf = Buffer.from(await res.arrayBuffer());
+    buf = await readCapped(res);
   } finally {
     clearTimeout(timer);
   }
