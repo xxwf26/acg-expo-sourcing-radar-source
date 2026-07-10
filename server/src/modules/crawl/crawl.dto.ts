@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsInt, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsObject, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 /** 转正候选时，复核人可携带的修正字段（都可选；缺省用候选原值） */
 export class PromoteCandidateDto {
@@ -32,4 +32,12 @@ export class BatchCandidateDto {
   @IsOptional() @IsArray() ids?: string[];
   @IsOptional() @IsInt() @Min(0) @Max(100) minScore?: number;
   @IsOptional() @IsInt() @Min(0) @Max(100) maxScore?: number;
+}
+
+/** 手动粘贴名单文本抽取候选（自动抓不到的站点兜底入口） */
+export class ExtractTextDto {
+  // 200KB 上限，防超大粘贴撑爆；下限在 service 层校验（去空后 ≥20）
+  @IsString() @MaxLength(200_000) rawText!: string;
+  @IsOptional() @IsString() @MaxLength(255) name?: string;
+  @IsOptional() @IsString() @MaxLength(64) eventId?: string;
 }

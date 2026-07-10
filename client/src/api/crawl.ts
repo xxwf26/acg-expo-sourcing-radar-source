@@ -21,6 +21,11 @@ export const crawlApi = {
     const res = await axiosForBackend({ url: '/api/crawl/run-all', method: 'POST' });
     return res.data;
   },
+  /** 手动粘贴名单文本 → AI 抽取候选（admin）——异步，立即返回 runId */
+  extractText: async (body: { rawText: string; name?: string; eventId?: string }): Promise<ICrawlRunResult> => {
+    const res = await axiosForBackend({ url: '/api/crawl/extract-text', method: 'POST', data: body });
+    return res.data;
+  },
   /** 查抓取批次状态（轮询用） */
   getRun: async (runId: string): Promise<ICrawlRun> => {
     const res = await axiosForBackend({ url: `/api/crawl/run/${runId}`, method: 'GET' });

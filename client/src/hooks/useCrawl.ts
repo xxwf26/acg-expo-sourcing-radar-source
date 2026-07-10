@@ -101,6 +101,16 @@ export function useCrawlMutations() {
     onError: (e) => toast.error(errMsg(e, '批量抓取触发失败')),
   });
 
+  // 手动粘贴名单文本抽取：触发即返回，进度/完成同样由 useCrawlRuns + 通知负责
+  const extractText = useMutation({
+    mutationFn: (body: { rawText: string; name?: string; eventId?: string }) => crawlApi.extractText(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['crawl-runs'] });
+      toast.success('已开始抽取，进度见「抓取历史」');
+    },
+    onError: (e) => toast.error(errMsg(e, '手动抽取触发失败')),
+  });
+
   const promote = useMutation({
     mutationFn: ({ id, data }: { id: string; data: IPromotePayload }) => crawlApi.promote(id, data),
     onSuccess: () => {
@@ -169,5 +179,5 @@ export function useCrawlMutations() {
     onError: (e) => toast.error(errMsg(e, '批量操作失败')),
   });
 
-  return { run, runAll, promote, merge, reject, restore, saveConfig, score, batch };
+  return { run, runAll, extractText, promote, merge, reject, restore, saveConfig, score, batch };
 }

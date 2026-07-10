@@ -20,9 +20,10 @@ import { cn } from '@/lib/utils';
 import { TYPE_LABELS, TYPE_OPTIONS } from '@/lib/filterConfig';
 import { useCandidates, useCandidateCounts, useCrawlMutations } from '@/hooks/useCrawl';
 import type { ICandidate, IEntity, IPromotePayload, Priority, EntityType } from '@/api/types';
-import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2, ExternalLink } from 'lucide-react';
+import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2, ExternalLink, ClipboardPaste } from 'lucide-react';
 import CrawlHistoryPanel from '@/components/CrawlHistoryPanel';
 import SourcingConfigModal from '@/components/SourcingConfigModal';
+import ManualIngestModal from '@/components/ManualIngestModal';
 
 const STATUS_TABS: { key: string; label: string }[] = [
   { key: 'pending', label: '待复核' },
@@ -335,6 +336,7 @@ export default function CandidateReviewSection({
   const [promoteTarget, setPromoteTarget] = useState<ICandidate | null>(null);
   const [mergeTarget, setMergeTarget] = useState<ICandidate | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [ingestOpen, setIngestOpen] = useState(false);
 
   const counts = countsQuery.data;
   const list = candidatesQuery.data?.list || [];
@@ -375,6 +377,10 @@ export default function CandidateReviewSection({
           </p>
           {canEdit && (
             <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIngestOpen(true)}>
+                <ClipboardPaste className="size-4" />
+                手动录入名单
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
                 <Settings2 className="size-4" />
                 采购配置
@@ -483,6 +489,7 @@ export default function CandidateReviewSection({
         }}
       />
       <SourcingConfigModal open={configOpen} onOpenChange={setConfigOpen} />
+      <ManualIngestModal open={ingestOpen} onOpenChange={setIngestOpen} />
     </div>
   );
 }

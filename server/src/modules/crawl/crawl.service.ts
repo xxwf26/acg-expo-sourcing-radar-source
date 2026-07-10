@@ -97,16 +97,69 @@ export class CrawlService implements OnModuleDestroy {
     await this.db.insert(crawlRuns).values({ id: runId, sourceId, status: 'running' });
 
     // 后台执行，不 await；异常落日志（pipeline 内已把失败写回 run，此处兜底）
-    void this.executePipeline(runId, src).catch((e) => {
+    void this.executePipeline(runId, sourceId, () => this.runPipelineBody(runId, src)).catch((e) => {
       this.logger.error(`抓取管线异常(run=${runId})：${e?.message ?? e}`);
     });
 
     return { runId, status: 'running' as const };
   }
 
-  /** 后台抓取管线：抓取 → 抽取 → 去重 → 落候选。结果写回 crawl_runs。 */
-  private async executePipeline(runId: string, src: typeof sources.$inferSelect) {
-    const sourceId = src.id;
+  /**
+   * 手动粘贴名单文本 → 抽取候选。用于自动抓取抓不到的站点
+   *（网络不通、需登录/交互/付费）：用户自己复制名单粘进来，系统只做抽取+入库。
+   * 复用 executePipeline 的超时+防并发包装，候选进同一复核队列。
+   */
+  async runTextExtract(input: { rawText: string; name?: string; eventId?: string }) {
+    if (!this.llm.available) {
+      throw new ServiceUnavailableException('AI 服务未配置（服务端缺少 AI_API_KEY），无法抽取候选');
+    }
+    const text = (input.rawText || '').trim();
+    if (text.length < 20) {
+      throw new BadRequestException('粘贴内容过少（至少 20 字），请贴入完整名单文本');
+    }
+    const sourceId = await this.ensureManualSource();
+    if (await this.hasRunningRun(sourceId)) {
+      throw new BadRequestException('已有一批手动录入正在处理中，请稍候再试');
+    }
+
+    const runId = crypto.randomUUID();
+    await this.db.insert(crawlRuns).values({ id: runId, sourceId, status: 'running' });
+
+    void this.executePipeline(runId, sourceId, () =>
+      this.extractAndStore(runId, text, {
+        sourceId,
+        name: input.name?.trim() || '手动粘贴',
+        eventId: input.eventId?.trim() || null,
+        startChunk: 0,
+        advanceOffset: false, // 手动粘贴无断点续抓语义
+        maxChunks: 20, // 给大些，一次尽量抽完粘贴的长名单
+      }),
+    ).catch((e) => {
+      this.logger.error(`手动抽取管线异常(run=${runId})：${e?.message ?? e}`);
+    });
+
+    return { runId, status: 'running' as const };
+  }
+
+  /** 承载手动录入的伪信息源（满足 crawl_runs.sourceId 非空 + 候选归属）。幂等 upsert。 */
+  private readonly MANUAL_SOURCE_ID = 'manual-paste';
+  private async ensureManualSource(): Promise<string> {
+    const [exist] = await this.db
+      .select({ id: sources.id })
+      .from(sources)
+      .where(eq(sources.id, this.MANUAL_SOURCE_ID));
+    if (!exist) {
+      await this.db.insert(sources).values({
+        id: this.MANUAL_SOURCE_ID,
+        name: '手动粘贴录入',
+        enabled: false, // 不纳入自动抓取/一键抓取
+      });
+    }
+    return this.MANUAL_SOURCE_ID;
+  }
+
+  /** 后台管线：套 5 分钟总超时 + 同源防并发，把失败写回 crawl_runs。body 内做实际抓取/抽取。 */
+  private async executePipeline(runId: string, sourceId: string, body: () => Promise<void>) {
     // 同源重入保护：已有该源在抓，则本 run 直接失败退出，避免 offset 覆盖 / 去重竞态
     if (this.runningSources.has(sourceId)) {
       await this.db
@@ -120,7 +173,7 @@ export class CrawlService implements OnModuleDestroy {
       // 总体超时：抽取卡住(中转对大请求不稳)时，整条管线最多跑 5 分钟即失败退出，
       // 避免 run 永远 running 把该源锁死(finally 才释放 runningSources)。
       await this.withTimeout(
-        this.runPipelineBody(runId, src),
+        body(),
         5 * 60_000,
         '抓取管线超时（5 分钟）——可能是名单页过大或中转不稳，已终止；可稍后重试或改小抓取范围',
       );
@@ -148,98 +201,140 @@ export class CrawlService implements OnModuleDestroy {
 
   /** 抓取管线主体：抓取 → 抽取 → 去重 → 落候选。被 executePipeline 套超时调用。 */
   private async runPipelineBody(runId: string, src: typeof sources.$inferSelect) {
-    const sourceId = src.id;
-    {
-      // 1. 抓取
-      const { text, bytes } = await fetchSource({
-        url: src.url!,
-        strategy: src.strategy,
-        selector: src.selector,
-      });
-      if (!text || text.trim().length < 20) {
-        const hint =
-          src.strategy === 'browser'
-            ? '渲染后内容仍过少，可能需要配置等待选择器(selector)或该站有反爬'
-            : '抓取内容过少，可能是 JS 渲染页——试试把抓取策略改为 browser(无头浏览器)';
-        throw new Error(`${hint}（${bytes} 字节）`);
-      }
+    // 1. 抓取
+    const { text, bytes } = await fetchSource({
+      url: src.url!,
+      strategy: src.strategy,
+      selector: src.selector,
+    });
+    if (!text || text.trim().length < 20) {
+      const hint =
+        src.strategy === 'browser'
+          ? '渲染后内容仍过少，可能需要配置等待选择器(selector)或该站有反爬'
+          : '抓取内容过少，可能是 JS 渲染页——试试把抓取策略改为 browser(无头浏览器)';
+      throw new Error(`${hint}（${bytes} 字节）`);
+    }
 
-      // 2. LLM 抽取
-      let eventShort: string | undefined;
-      if (src.eventId) {
-        const [ev] = await this.db.select().from(events).where(eq(events.id, src.eventId));
-        eventShort = ev?.short;
-      }
-      const { candidates: extracted, truncated, nextOffset, totalChunks } = await extractCandidates(this.llm, text, {
-        sourceName: src.name,
+    // 2~4. 抽取 → 去重 → 落库（与手动粘贴共用）。自动抓取推进 offset 支持断点续抓。
+    await this.extractAndStore(runId, text, {
+      sourceId: src.id,
+      name: src.name,
+      eventId: src.eventId ?? null,
+      startChunk: src.crawlOffset ?? 0,
+      advanceOffset: true,
+    });
+  }
+
+  /**
+   * 抽取 → 去重 → 落候选（抓取/手动粘贴共用的后半段管线）。
+   * @param text  已拿到的名单纯文本（抓取结果或用户粘贴）
+   * @param ctx.advanceOffset  true=推进 sources.crawlOffset（自动抓取断点续抓）；
+   *                            false=不推进（手动粘贴一次性抽取，无续抓语义）
+   * @param ctx.maxChunks      单次最多抽多少段；手动粘贴可给大些一次抽完
+   */
+  private async extractAndStore(
+    runId: string,
+    text: string,
+    ctx: {
+      sourceId: string;
+      name: string;
+      eventId: string | null;
+      startChunk: number;
+      advanceOffset: boolean;
+      maxChunks?: number;
+    },
+  ) {
+    const { sourceId } = ctx;
+
+    // 2. LLM 抽取
+    let eventShort: string | undefined;
+    if (ctx.eventId) {
+      const [ev] = await this.db.select().from(events).where(eq(events.id, ctx.eventId));
+      eventShort = ev?.short;
+    }
+    const { candidates: extracted, truncated, nextOffset, totalChunks, failedChunks, failReasons } =
+      await extractCandidates(this.llm, text, {
+        sourceName: ctx.name,
         eventShort,
-        startChunk: src.crawlOffset ?? 0,
+        startChunk: ctx.startChunk,
+        maxChunks: ctx.maxChunks,
       });
 
-      // 3. 去重比对 + 落候选
-      //   - 对已有正式对象：命中则标 dedupEntityId（复核时提示合并）
-      //   - 对本源已有候选（任何状态）：直接跳过，避免续抓/重抓产生重复候选
-      const existing = await this.db.select({ id: entities.id, name: entities.name }).from(entities);
-      const existingByNorm = new Map(existing.map((e) => [normalizeName(e.name), e.id]));
-      const priorCands = await this.db
-        .select({ name: candidates.name })
-        .from(candidates)
-        .where(eq(candidates.sourceId, sourceId));
-      const priorCandNorms = new Set(priorCands.map((c) => normalizeName(c.name)));
-      const seenInBatch = new Set<string>();
+    // 抽取全军覆没：一条没抽到且所有块都失败（多为 AI 中转超时/空正文）——
+    // 这不是「名单里没对象」，而是抽取环节挂了，应如实报失败并带上原因，
+    // 而不是标 ok 显示误导性的「抽到第 0 段」。offset 不推进，修复后重抓即可。
+    if (extracted.length === 0 && failedChunks > 0) {
+      throw new Error(`AI 抽取全部失败（${failedChunks} 块）：${failReasons.slice(0, 3).join('；')}`);
+    }
 
-      const rows: any[] = [];
-      for (const c of extracted) {
-        const norm = normalizeName(c.name);
-        if (!norm || seenInBatch.has(norm) || priorCandNorms.has(norm)) continue;
-        seenInBatch.add(norm);
-        rows.push({
-          id: crypto.randomUUID(),
-          sourceId,
-          crawlRunId: runId,
-          eventId: src.eventId ?? null,
-          name: c.name,
-          type: c.type ?? 'creatorKol',
-          region: c.region ?? null,
-          booth: c.booth ?? null,
-          activityTime: c.activityTime ?? null,
-          followerScale: c.followerScale ?? null,
-          // 抽到作品主页则存为可点链接（与 entities.links 同结构 [label,url][]）
-          links: c.website ? [['作品主页', c.website] as [string, string]] : null,
-          reason: c.reason ?? null,
-          rawSnippet: c.rawSnippet ?? null,
-          dedupEntityId: existingByNorm.get(norm) ?? null,
-          status: 'pending' as const,
-        });
-      }
+    // 3. 去重比对 + 落候选
+    //   - 对已有正式对象：命中则标 dedupEntityId（复核时提示合并）
+    //   - 对本源已有候选（任何状态）：直接跳过，避免续抓/重抓产生重复候选
+    const existing = await this.db.select({ id: entities.id, name: entities.name }).from(entities);
+    const existingByNorm = new Map(existing.map((e) => [normalizeName(e.name), e.id]));
+    const priorCands = await this.db
+      .select({ name: candidates.name })
+      .from(candidates)
+      .where(eq(candidates.sourceId, sourceId));
+    const priorCandNorms = new Set(priorCands.map((c) => normalizeName(c.name)));
+    const seenInBatch = new Set<string>();
 
-      // 4. 收尾：候选入库 + run ok + 推进 source.crawlOffset，同一事务保证一致性
-      const coveredTo = truncated ? nextOffset : totalChunks;
-      const note = truncated
-        ? `名单共 ${totalChunks} 段，本次抽到第 ${coveredTo} 段，再次抓取可继续后续`
-        : totalChunks > 1
-          ? `已覆盖全部 ${totalChunks} 段名单`
-          : '';
-      await this.db.transaction(async (tx) => {
-        if (rows.length) {
-          await tx.insert(candidates).values(rows as any);
-        }
-        await tx
-          .update(crawlRuns)
-          .set({
-            status: 'ok',
-            rawText: truncateBytes(text, 60000),
-            extractedCount: rows.length,
-            error: note || null,
-            finishedAt: new Date(),
-          })
-          .where(eq(crawlRuns.id, runId));
-        await tx
-          .update(sources)
-          .set({ lastCrawledAt: new Date(), crawlOffset: nextOffset })
-          .where(eq(sources.id, sourceId));
+    const rows: any[] = [];
+    for (const c of extracted) {
+      const norm = normalizeName(c.name);
+      if (!norm || seenInBatch.has(norm) || priorCandNorms.has(norm)) continue;
+      seenInBatch.add(norm);
+      rows.push({
+        id: crypto.randomUUID(),
+        sourceId,
+        crawlRunId: runId,
+        eventId: ctx.eventId ?? null,
+        name: c.name,
+        type: c.type ?? 'creatorKol',
+        region: c.region ?? null,
+        booth: c.booth ?? null,
+        activityTime: c.activityTime ?? null,
+        followerScale: c.followerScale ?? null,
+        // 抽到作品主页则存为可点链接（与 entities.links 同结构 [label,url][]）
+        links: c.website ? [['作品主页', c.website] as [string, string]] : null,
+        reason: c.reason ?? null,
+        rawSnippet: c.rawSnippet ?? null,
+        dedupEntityId: existingByNorm.get(norm) ?? null,
+        status: 'pending' as const,
       });
     }
+
+    // 4. 收尾：候选入库 + run ok + 推进 source.crawlOffset，同一事务保证一致性
+    const coveredTo = truncated ? nextOffset : totalChunks;
+    let note = truncated
+      ? `名单共 ${totalChunks} 段，本次抽到第 ${coveredTo} 段，再次抓取可继续后续`
+      : totalChunks > 1
+        ? `已覆盖全部 ${totalChunks} 段名单`
+        : '';
+    // 部分块失败（抽到了一些、但有块超时/报错）：附带提示，方便判断是否需重抓补齐
+    if (failedChunks > 0) {
+      note = `${note ? note + '；' : ''}其中 ${failedChunks} 块抽取失败（${failReasons.slice(0, 2).join('；')}），重抓可补齐`;
+    }
+    await this.db.transaction(async (tx) => {
+      if (rows.length) {
+        await tx.insert(candidates).values(rows as any);
+      }
+      await tx
+        .update(crawlRuns)
+        .set({
+          status: 'ok',
+          rawText: truncateBytes(text, 60000),
+          extractedCount: rows.length,
+          error: note || null,
+          finishedAt: new Date(),
+        })
+        .where(eq(crawlRuns.id, runId));
+      // 手动粘贴不做断点续抓，只标记最近处理时间，不动 crawlOffset
+      await tx
+        .update(sources)
+        .set(ctx.advanceOffset ? { lastCrawledAt: new Date(), crawlOffset: nextOffset } : { lastCrawledAt: new Date() })
+        .where(eq(sources.id, sourceId));
+    });
   }
 
   /** 查 run 状态（前端轮询用） */
@@ -302,7 +397,7 @@ export class CrawlService implements OnModuleDestroy {
     // 后台串行跑，不阻塞请求
     void (async () => {
       for (const j of jobs) {
-        await this.executePipeline(j.runId, j.src).catch((e) => {
+        await this.executePipeline(j.runId, j.src.id, () => this.runPipelineBody(j.runId, j.src)).catch((e) => {
           this.logger.error(`抓取管线异常(run=${j.runId})：${e?.message ?? e}`);
         });
       }

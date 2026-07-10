@@ -79,7 +79,9 @@ export default function SourcesSection({
   onEdit?: (source: ISource) => void;
 }) {
   const { run, runAll } = useCrawlMutations();
-  const enabledCount = sources.filter((s) => s.enabled && s.url).length;
+  // 隐藏承载「手动录入」的伪信息源，不让它混进监控列表
+  const visibleSources = sources.filter((s) => s.id !== 'manual-paste');
+  const enabledCount = visibleSources.filter((s) => s.enabled && s.url).length;
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -103,7 +105,7 @@ export default function SourcesSection({
             </Button>
           </div>
         )}
-        {sources.map((source) => {
+        {visibleSources.map((source) => {
           const crawlable = !!source.url;
           const running = run.isPending && run.variables === source.id;
           return (

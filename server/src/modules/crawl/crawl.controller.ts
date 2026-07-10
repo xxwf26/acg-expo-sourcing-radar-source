@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CrawlService } from './crawl.service';
-import { BatchCandidateDto, MergeCandidateDto, PromoteCandidateDto, SourcingConfigDto } from './crawl.dto';
+import { BatchCandidateDto, ExtractTextDto, MergeCandidateDto, PromoteCandidateDto, SourcingConfigDto } from './crawl.dto';
 
 /**
  * 自动采集接口。
@@ -39,6 +39,14 @@ export class CrawlController {
   @Roles('admin')
   async runAll() {
     return this.crawl.runAll();
+  }
+
+  /** 手动粘贴名单文本 → AI 抽取候选（自动抓不到的站点兜底） */
+  @Post('crawl/extract-text')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async extractText(@Body() dto: ExtractTextDto) {
+    return this.crawl.runTextExtract(dto);
   }
 
   /** 查抓取 run 状态（前端轮询） */
