@@ -51,36 +51,40 @@ export class LlmClient implements OnModuleInit {
       throw new Error('AI 服务未配置（缺少 AI_API_KEY）');
     }
     const maxAttempts = (opts?.maxRetries ?? 2) + 1; // 默认 3 次（2 次重试）
-    const res = await this.callWithRetry(
-      () =>
-        this.client.messages.create(
-          {
-            model: this.model,
-            max_tokens: maxTokens ?? this.maxTokens,
-            system,
-            messages,
-            // 结构化抽取/打分等场景关闭 thinking：deepseek-v4-pro 的思考很费 token 且不稳，
-            // 常把 max_tokens 吃光导致正文为空；关掉后又快(约 2~4 倍)又稳，JSON 直接产出。
-            ...(opts?.disableThinking ? { thinking: { type: 'disabled' } } : {}),
-          } as any,
-          // 单次请求超时：opts 优先，否则用客户端默认（90s）
-          opts?.timeoutMs ? { timeout: opts.timeoutMs } : undefined,
-        ),
-      maxAttempts,
-    );
-    const text = (res.content ?? [])
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim();
-    if (!text) {
-      // thinking 吃满配额或模型未产正文：不能当成功返回空串
-      throw new Error('AI 未返回正文（可能思考耗尽 max_tokens，请调大 AI_MAX_TOKENS 或重试）');
-    }
-    return { content: text, model: res.model, usage: res.usage as unknown as Record<string, number> };
+    // 把「请求 + 提取正文 + 校验」整体放进重试闭包：
+    // 中转偶发返回 HTML 错误页(网关502/503,HTTP 却可能是200)或空正文时，
+    // SDK 解析会抛 SyntaxError、或正文为空——这些都应重试，而非直接失败让上层整批丢弃。
+    const result = await this.callWithRetry(async () => {
+      const res = await this.client.messages.create(
+        {
+          model: this.model,
+          max_tokens: maxTokens ?? this.maxTokens,
+          system,
+          messages,
+          // 结构化抽取/打分等场景关闭 thinking：deepseek-v4-pro 的思考很费 token 且不稳，
+          // 常把 max_tokens 吃光导致正文为空；关掉后又快(约 2~4 倍)又稳，JSON 直接产出。
+          ...(opts?.disableThinking ? { thinking: { type: 'disabled' } } : {}),
+        } as any,
+        // 单次请求超时：opts 优先，否则用客户端默认（90s）
+        opts?.timeoutMs ? { timeout: opts.timeoutMs } : undefined,
+      );
+      const text = (res.content ?? [])
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      if (!text) {
+        // thinking 吃满配额或模型未产正文/中转返回异常：标记为可重试，闭包内抛出即触发重试
+        const e: any = new Error('AI 未返回正文（可能思考耗尽 max_tokens 或中转异常，已重试）');
+        e.retryable = true;
+        throw e;
+      }
+      return { content: text, model: res.model, usage: res.usage as unknown as Record<string, number> };
+    }, maxAttempts);
+    return result;
   }
 
-  /** 对瞬时错误（429/超时/5xx/连接错误）做重试。maxAttempts 含首次尝试。 */
+  /** 对瞬时错误（429/超时/5xx/连接错误/中转返回HTML错误页/空正文）做重试。maxAttempts 含首次尝试。 */
   private async callWithRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
     let lastErr: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -89,7 +93,13 @@ export class LlmClient implements OnModuleInit {
       } catch (err: any) {
         lastErr = err;
         const status = err?.status ?? err?.response?.status;
+        // 中转返回 HTML 错误页时，SDK 解析 JSON 会抛 SyntaxError（"Unexpected token '<'"）——
+        // 这不是稳定失败而是中转抽风，应重试。
+        const isNonJson =
+          err?.name === 'SyntaxError' || /Unexpected token|is not valid JSON|<html/i.test(String(err?.message ?? ''));
         const retryable =
+          err?.retryable === true ||
+          isNonJson ||
           status === 429 ||
           (typeof status === 'number' && status >= 500) ||
           err?.name === 'APIConnectionError' ||

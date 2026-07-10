@@ -48,19 +48,20 @@ function buildSystem(cfg: SourcingConfigData): string {
 
 /**
  * 批量给候选打匹配分。分批调用（每批 ~15 个），避免单次输出过长被 thinking/max_tokens 截断。
- * 单批失败跳过（不拖垮整体），返回所有成功打分的结果。
+ * 单批失败会再降级重试一次（llm.client 已对中转 HTML 错误页/空正文做重试，此处是二次兜底）；
+ * 仍失败才跳过该批。返回成功打分的结果 + 未能打分的条数（供上层提示补打）。
  */
 export async function scoreCandidates(
   llm: LlmClient,
   cfg: SourcingConfigData,
   candidates: ScorableCandidate[],
-): Promise<ScoreResult[]> {
+): Promise<{ results: ScoreResult[]; failed: number }> {
   const system = buildSystem(cfg);
   const out: ScoreResult[] = [];
+  let failed = 0;
   const BATCH = 15;
 
-  for (let i = 0; i < candidates.length; i += BATCH) {
-    const batch = candidates.slice(i, i + BATCH);
+  const runBatch = async (batch: ScorableCandidate[]): Promise<ScoreResult[]> => {
     const payload = batch.map((c) => ({
       id: c.id,
       name: c.name,
@@ -71,17 +72,41 @@ export async function scoreCandidates(
       bio: (c.rawSnippet || c.reason || '').replace(/\s+/g, ' ').trim().slice(0, 300),
     }));
     const userMsg = `给以下候选打分（逐个返回 id/score/reason）：\n${JSON.stringify(payload)}`;
+    // 打分同抽取：关闭 thinking（纯结构化任务，避免思考吃光 token 致空正文）+ 宽超时兜底
+    const res = await llm.chat(system, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 120_000, maxRetries: 2, disableThinking: true });
+    return parseScores(res.content);
+  };
+
+  for (let i = 0; i < candidates.length; i += BATCH) {
+    const batch = candidates.slice(i, i + BATCH);
     try {
-      // 打分同抽取：关闭 thinking（纯结构化任务，避免思考吃光 token 致空正文）+ 宽超时兜底
-      const res = await llm.chat(system, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 120_000, maxRetries: 2, disableThinking: true });
-      for (const r of parseScores(res.content)) out.push(r);
+      const scored = await runBatch(batch);
+      if (scored.length === 0 && batch.length > 0) {
+        // 解析到 0 条（多为中转返回异常正文）：降级拆两半各重试一次
+        const mid = Math.ceil(batch.length / 2);
+        const halves = [batch.slice(0, mid), batch.slice(mid)];
+        for (const half of halves) {
+          if (!half.length) continue;
+          try {
+            const s = await runBatch(half);
+            if (s.length) out.push(...s);
+            else failed += half.length;
+          } catch {
+            failed += half.length;
+          }
+        }
+      } else {
+        out.push(...scored);
+        // LLM 少返回的（漏打个别 id）计入 failed，便于上层提示
+        if (scored.length < batch.length) failed += batch.length - scored.length;
+      }
     } catch (e) {
-      // 该批失败跳过，记录便于排查
+      failed += batch.length;
       // eslint-disable-next-line no-console
       console.warn('[scorer] 批次打分失败，已跳过', batch.length, '条：', (e as Error)?.message);
     }
   }
-  return out;
+  return { results: out, failed };
 }
 
 /** 解析打分返回：容忍围栏/多余文本，提取 JSON 数组 */

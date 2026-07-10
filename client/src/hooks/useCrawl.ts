@@ -162,7 +162,11 @@ export function useCrawlMutations() {
     mutationFn: (scope: 'pending-unscored' | 'all-pending') => crawlApi.score(scope),
     onSuccess: (res) => {
       invalidate();
-      toast.success(`AI 打分完成：${res.scored}/${res.total} 个候选`);
+      if (res.failed > 0) {
+        toast.warning(`AI 打分：${res.scored}/${res.total} 成功，${res.failed} 条未打分（中转不稳），再点一次「AI 打分」可补齐`);
+      } else {
+        toast.success(`AI 打分完成：${res.scored}/${res.total} 个候选`);
+      }
     },
     onError: (e) => toast.error(errMsg(e, 'AI 打分失败')),
   });

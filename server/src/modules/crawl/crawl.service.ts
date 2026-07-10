@@ -643,7 +643,7 @@ export class CrawlService implements OnModuleDestroy {
 
     if (!rows.length) return { scored: 0, total: 0 };
 
-    const results = await scoreCandidates(this.llm, cfg, rows);
+    const { results } = await scoreCandidates(this.llm, cfg, rows);
     // 只信任「本批输入过」的 id：LLM 可能幻觉/串批返回不在 scope 内的 id，
     // 直接按其写库会污染其它候选（含已 promoted/rejected 的）。
     const allowedIds = new Set(rows.map((r) => r.id));
@@ -662,8 +662,9 @@ export class CrawlService implements OnModuleDestroy {
     }
     const scored = valid.length;
     if (scored < rows.length) {
-      this.logger.warn(`打分部分失败/丢弃：共 ${rows.length} 条，写回 ${scored} 条`);
+      this.logger.warn(`打分部分失败/丢弃：共 ${rows.length} 条，写回 ${scored} 条，未打 ${rows.length - scored} 条`);
     }
-    return { scored, total: rows.length };
+    // 未打分条数（中转不稳 / LLM 漏返回 / id 越界被过滤）：前端据此提示「再点一次可补齐」。
+    return { scored, total: rows.length, failed: rows.length - scored };
   }
 }

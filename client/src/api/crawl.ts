@@ -77,7 +77,7 @@ export const crawlApi = {
     return res.data;
   },
   /** 给待复核候选打匹配分（admin），scope 默认只打未打分的 */
-  score: async (scope: 'pending-unscored' | 'all-pending' = 'pending-unscored'): Promise<{ scored: number; total: number }> => {
+  score: async (scope: 'pending-unscored' | 'all-pending' = 'pending-unscored'): Promise<{ scored: number; total: number; failed: number }> => {
     const res = await axiosForBackend({ url: `/api/candidates/score?scope=${scope}`, method: 'POST', timeout: 300000 });
     return res.data;
   },
