@@ -45,7 +45,7 @@ export class LlmClient implements OnModuleInit {
     system: string,
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
     maxTokens?: number,
-    opts?: { timeoutMs?: number; maxRetries?: number },
+    opts?: { timeoutMs?: number; maxRetries?: number; disableThinking?: boolean },
   ): Promise<{ content: string; model: string; usage: Record<string, number> }> {
     if (!this.client) {
       throw new Error('AI 服务未配置（缺少 AI_API_KEY）');
@@ -59,7 +59,10 @@ export class LlmClient implements OnModuleInit {
             max_tokens: maxTokens ?? this.maxTokens,
             system,
             messages,
-          },
+            // 结构化抽取/打分等场景关闭 thinking：deepseek-v4-pro 的思考很费 token 且不稳，
+            // 常把 max_tokens 吃光导致正文为空；关掉后又快(约 2~4 倍)又稳，JSON 直接产出。
+            ...(opts?.disableThinking ? { thinking: { type: 'disabled' } } : {}),
+          } as any,
           // 单次请求超时：opts 优先，否则用客户端默认（90s）
           opts?.timeoutMs ? { timeout: opts.timeoutMs } : undefined,
         ),

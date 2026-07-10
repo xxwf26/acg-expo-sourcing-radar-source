@@ -72,8 +72,8 @@ export async function scoreCandidates(
     }));
     const userMsg = `给以下候选打分（逐个返回 id/score/reason）：\n${JSON.stringify(payload)}`;
     try {
-      // 打分同抽取：短超时 + 少重试，中转不稳时快速失败不拖垮整批
-      const res = await llm.chat(system, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 60_000, maxRetries: 1 });
+      // 打分同抽取：关闭 thinking（纯结构化任务，避免思考吃光 token 致空正文）+ 宽超时兜底
+      const res = await llm.chat(system, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 120_000, maxRetries: 2, disableThinking: true });
       for (const r of parseScores(res.content)) out.push(r);
     } catch (e) {
       // 该批失败跳过，记录便于排查

@@ -61,22 +61,36 @@ export async function renderPage(
       await page.waitForSelector(waitFor, { timeout: 12000 }).catch(() => {});
     }
 
-    // 轮询 body 文本长度直到稳定（异步渲染的名单会让文本持续变长）
+    // 轮询 body 文本长度直到稳定（异步渲染的名单会让文本持续变长）。
+    //
+    // 关键坑（AnimeJapan 踩坑）：名单常在页面加载后 4~6 秒才异步注入 DOM。
+    // 在此之前只有导航/页脚骨架(~700字)，且骨架会先「连续两次不变」。若一稳定就退出，
+    // 会拿着空骨架提前离开、名单一条抓不到（表现为时好时坏，取决于加载时机是否踩临界）。
+    // 对策：① 强制最小等待窗口(minWaitMs)，让异步名单有时间注入，此窗口内不提前退出；
+    //       ② 用「显著增长」判稳：文本比上一次基本没长(增幅<2%)才累计 stable，
+    //          避免把「骨架已到、名单未到」的平台期误判成渲染完成。
+    const POLL_MS = 1200;
+    const MIN_WAIT_MS = 8000; // 至少等 8s，覆盖 4~6s 才注入名单的站点
     let prev = 0;
     let stable = 0;
-    for (let i = 0; i < 12; i++) {
-      const len = await page.evaluate(
+    let waited = 0;
+    for (let i = 0; i < 15; i++) {
+      const len = (await page.evaluate(
         // document 在浏览器上下文求值，tsc 按 Node 库检查会报错，故用字符串形式
         'document.body ? document.body.innerText.length : 0',
-      ) as number;
-      if (len > 0 && len === prev) {
-        stable += 1;
-        if (stable >= 2) break; // 连续两次不变即认为渲染完成
-      } else {
+      )) as number;
+      // 显著增长（>2% 或首次拿到内容）→ 内容仍在注入，重置稳定计数
+      const grewSignificantly = len > prev * 1.02 || (prev === 0 && len > 0);
+      if (grewSignificantly) {
         stable = 0;
+      } else if (len > 0) {
+        stable += 1;
+        // 只有过了最小等待窗口、且连续两次不再显著增长，才认定渲染完成
+        if (stable >= 2 && waited >= MIN_WAIT_MS) break;
       }
       prev = len;
-      await page.waitForTimeout(1200);
+      await page.waitForTimeout(POLL_MS);
+      waited += POLL_MS;
     }
 
     return (await page.evaluate('document.body ? document.body.innerText : ""')) as string;

@@ -64,6 +64,10 @@ export async function extractCandidates(
   nextOffset: number;
   /** 名单总段数 */
   totalChunks: number;
+  /** 本批失败块数（超时/空正文等） */
+  failedChunks: number;
+  /** 失败块的具体原因，便于诊断 */
+  failReasons: string[];
 }> {
   const allChunks = chunkText(rawText, 1500);
   // 每块一次 LLM 调用。经实测：中转对「带 thinking 的大请求」会 upstream 超时(503)，
@@ -82,6 +86,8 @@ export async function extractCandidates(
   let failedChunks = 0;
   // 记录本批第一个失败块的绝对索引：offset 不能越过它，否则该段名单永久漏抓。
   let firstFailedAbs = -1;
+  // 收集失败块的具体原因（超时 / 空正文 / 其它），便于诊断——不再静默吞掉。
+  const failReasons: string[] = [];
 
   // 分块并发抽取（限并发 3，兼顾速度与中转压力），单块失败跳过不拖垮整轮。
   // mapPool 保持结果顺序，故下方可用下标算出失败块的绝对索引（H1 断点续抓依赖）。
@@ -96,11 +102,12 @@ ${chunk}
 
 请抽取候选并按要求输出 JSON 数组。`;
     try {
-      // 小块 + 适中 max_tokens：thinking + JSON 都放得下，又不触发中转 upstream 超时。
-      // 抽取用更短超时(60s) + 少重试(1 次)：中转对大请求不稳时快速失败，不把整轮拖到十几分钟。
-      return { res: await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 60_000, maxRetries: 1 }) };
-    } catch {
-      return { failed: true as const };
+      // 关闭 thinking：抽取名单是纯结构化任务，不需要模型思考；开着 thinking 会吃光
+      // max_tokens 导致正文为空（实测 6000 也会被吃光）。关掉后单块约 12s、稳定产出 JSON。
+      // 保留较宽超时(120s)+重试(2)作中转波动兜底。
+      return { res: await llm.chat(SYSTEM, [{ role: 'user', content: userMsg }], 6000, { timeoutMs: 120_000, maxRetries: 2, disableThinking: true }) };
+    } catch (e: any) {
+      return { failed: true as const, reason: String(e?.message ?? e) };
     }
   });
 
@@ -109,6 +116,7 @@ ${chunk}
     if ('failed' in r) {
       failedChunks += 1;
       if (firstFailedAbs === -1) firstFailedAbs = start + i;
+      failReasons.push(`块#${start + i}: ${r.reason}`);
       continue;
     }
     model = r.res.model;
@@ -135,6 +143,8 @@ ${chunk}
     truncated,
     nextOffset,
     totalChunks: allChunks.length,
+    failedChunks,
+    failReasons,
   };
 }
 
