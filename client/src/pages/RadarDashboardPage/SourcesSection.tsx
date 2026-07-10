@@ -1,7 +1,7 @@
 import { ExternalLink, Plus, Pencil, RefreshCw, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, fmtBeijingFull } from '@/lib/utils';
 import { useCrawlMutations } from '@/hooks/useCrawl';
 import type { ISource } from '@/api/types';
 
@@ -147,7 +147,7 @@ export default function SourcesSection({
                 <p className="mt-1 truncate text-[11px] text-muted-foreground/70">
                   抓取源：
                   <a href={source.url} target="_blank" rel="noreferrer" className="text-info hover:underline">{source.url}</a>
-                  {source.lastCrawledAt && ` · 上次 ${new Date(source.lastCrawledAt).toLocaleString('zh-CN')}`}
+                  {source.lastCrawledAt && ` · 上次 ${fmtBeijingFull(source.lastCrawledAt)}`}
                 </p>
               )}
               {source.links && source.links.length > 0 && (

@@ -1,5 +1,5 @@
 import { useCrawlRuns } from '@/hooks/useCrawl';
-import { cn } from '@/lib/utils';
+import { cn, fmtBeijingShort } from '@/lib/utils';
 import { Loader2, CheckCircle2, XCircle, History } from 'lucide-react';
 import type { ICrawlRunListItem } from '@/api/types';
 
@@ -7,14 +7,6 @@ function StatusIcon({ status }: { status: ICrawlRunListItem['status'] }) {
   if (status === 'running') return <Loader2 className="size-3.5 animate-spin text-primary" />;
   if (status === 'ok') return <CheckCircle2 className="size-3.5 text-success" />;
   return <XCircle className="size-3.5 text-destructive" />;
-}
-
-function fmt(ts: string) {
-  try {
-    return new Date(ts).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return ts;
-  }
 }
 
 /**
@@ -47,7 +39,7 @@ export default function CrawlHistoryPanel() {
                     ? `+${r.extractedCount ?? 0} 候选`
                     : '失败'}
               </span>
-              <span className="shrink-0 text-muted-foreground/70">{fmt(r.startedAt)}</span>
+              <span className="shrink-0 text-muted-foreground/70">{fmtBeijingShort(r.startedAt)}</span>
             </div>
             {r.error && (
               <p
