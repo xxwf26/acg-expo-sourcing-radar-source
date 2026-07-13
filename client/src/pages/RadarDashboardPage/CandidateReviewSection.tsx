@@ -19,8 +19,8 @@ import {
 import { cn } from '@/lib/utils';
 import { TYPE_LABELS, TYPE_OPTIONS } from '@/lib/filterConfig';
 import { useCandidates, useCandidateCounts, useCrawlMutations } from '@/hooks/useCrawl';
-import type { ICandidate, IEntity, IPromotePayload, Priority, EntityType } from '@/api/types';
-import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2, ExternalLink, ClipboardPaste } from 'lucide-react';
+import type { ICandidate, IEntity, IEvent, IPromotePayload, Priority, EntityType } from '@/api/types';
+import { MapPin, Check, Trash2, GitMerge, RefreshCw, Sparkles, Clock, RotateCcw, Settings2, ExternalLink, ClipboardPaste, LayoutGrid, List } from 'lucide-react';
 import CrawlHistoryPanel from '@/components/CrawlHistoryPanel';
 import SourcingConfigModal from '@/components/SourcingConfigModal';
 import ManualIngestModal from '@/components/ManualIngestModal';
@@ -220,7 +220,7 @@ function CandidateCard({
               <span
                 className={cn(
                   'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-semibold',
-                  c.aiScore >= 90 ? 'bg-primary/15 text-primary' : c.aiScore >= 70 ? 'bg-teal-100 text-teal-700' : c.aiScore >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground',
+                  scoreClass(c.aiScore),
                 )}
                 title="AI 匹配分"
               >
@@ -321,14 +321,129 @@ function CandidateCard({
   );
 }
 
+/** AI 匹配分的分级配色（卡片与列表共用） */
+function scoreClass(score: number): string {
+  return score >= 90
+    ? 'bg-primary/15 text-primary'
+    : score >= 70
+      ? 'bg-teal-100 text-teal-700'
+      : score >= 50
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-muted text-muted-foreground';
+}
+
+/** 紧凑列表的单行：一屏可见几十条，适合快速扫和批处理 */
+function CandidateRow({
+  c,
+  canEdit,
+  dupName,
+  eventShort,
+  busy,
+  onPromote,
+  onMerge,
+  onReject,
+  onRestore,
+}: {
+  c: ICandidate;
+  canEdit: boolean;
+  dupName?: string;
+  eventShort?: string;
+  busy?: boolean;
+  onPromote: () => void;
+  onMerge: () => void;
+  onReject: () => void;
+  onRestore: () => void;
+}) {
+  const isPending = c.status === 'pending';
+  return (
+    <tr className="border-t hover:bg-accent/40">
+      <td className="px-3 py-2 align-middle">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-medium" title={c.name}>{c.name}</span>
+          {c.dedupEntityId && (
+            <span
+              className="shrink-0 rounded border border-amber-300 bg-amber-50 px-1 text-[10px] text-amber-700"
+              title={`疑似已有对象${dupName ? `：${dupName}` : ''}`}
+            >
+              疑似
+            </span>
+          )}
+          {c.links && c.links.length > 0 && (
+            <a
+              href={c.links[0][1]}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 text-info hover:opacity-70"
+              title={c.links[0][0] || '作品主页'}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="size-3" />
+            </a>
+          )}
+        </div>
+      </td>
+      <td className="px-3 py-2 align-middle whitespace-nowrap text-xs text-muted-foreground">
+        {TYPE_LABELS[c.type]}
+      </td>
+      <td className="px-3 py-2 align-middle text-center">
+        {c.aiScore != null ? (
+          <span className={cn('inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-semibold', scoreClass(c.aiScore))} title={c.aiReason || 'AI 匹配分'}>
+            {c.aiScore}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground/50">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2 align-middle whitespace-nowrap text-xs text-muted-foreground">
+        {eventShort || '—'}
+      </td>
+      <td className="px-3 py-2 align-middle whitespace-nowrap text-xs text-muted-foreground">
+        {c.booth || c.region || '—'}
+      </td>
+      <td className="px-3 py-2 align-middle text-right">
+        {isPending && canEdit ? (
+          <div className="flex justify-end gap-1">
+            <Button variant="ghost" size="icon" className="size-7 text-primary" title="转正" onClick={onPromote} disabled={busy}>
+              <Check className="size-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="size-7" title="合并到已有" onClick={onMerge} disabled={busy}>
+              <GitMerge className="size-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:bg-destructive/5" title="丢弃" onClick={onReject} disabled={busy}>
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        ) : !isPending && canEdit && c.status !== 'promoted' ? (
+          <Button variant="ghost" size="icon" className="size-7" title="恢复到待复核" onClick={onRestore} disabled={busy}>
+            <RotateCcw className="size-4" />
+          </Button>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">
+            {c.status === 'promoted' ? '已转正' : c.status === 'merged' ? '已合并' : '已丢弃'}
+          </span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export default function CandidateReviewSection({
   canEdit,
   entities,
+  events,
 }: {
   canEdit: boolean;
   entities: IEntity[];
+  events: IEvent[];
 }) {
   const [status, setStatus] = useState('pending');
+  // 视图模式：卡片（信息全）/ 列表（密度高，候选多时更清晰）。记忆用户选择。
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(
+    () => (typeof localStorage !== 'undefined' && localStorage.getItem('candidateViewMode') === 'list' ? 'list' : 'card'),
+  );
+  useEffect(() => {
+    try { localStorage.setItem('candidateViewMode', viewMode); } catch { /* ignore */ }
+  }, [viewMode]);
   const candidatesQuery = useCandidates(status);
   const countsQuery = useCandidateCounts();
   const { promote, merge, reject, restore, score, batch } = useCrawlMutations();
@@ -341,6 +456,7 @@ export default function CandidateReviewSection({
   const counts = countsQuery.data;
   const list = candidatesQuery.data?.list || [];
   const entityName = (id: string | null) => entities.find((e) => e.id === id)?.name;
+  const eventShort = (id: string | null) => events.find((e) => e.id === id)?.short;
   // 批量阈值命中数（仅当前 pending 列表）
   const highScoreCount = list.filter((c) => c.aiScore != null && c.aiScore >= 85).length;
   const lowScoreCount = list.filter((c) => c.aiScore != null && c.aiScore < 50).length;
@@ -368,6 +484,23 @@ export default function CandidateReviewSection({
             </button>
           );
         })}
+        {/* 卡片 / 列表 视图切换 */}
+        <div className="ml-auto flex items-center gap-0.5 rounded-lg border p-0.5">
+          <button
+            onClick={() => setViewMode('card')}
+            className={cn('flex items-center gap-1 rounded-md px-2 py-1 text-xs', viewMode === 'card' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+            title="卡片视图"
+          >
+            <LayoutGrid className="size-3.5" />卡片
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={cn('flex items-center gap-1 rounded-md px-2 py-1 text-xs', viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+            title="列表视图（密度高）"
+          >
+            <List className="size-3.5" />列表
+          </button>
+        </div>
       </div>
 
       {status === 'pending' && (
@@ -446,6 +579,47 @@ export default function CandidateReviewSection({
           {status === 'pending'
             ? '暂无待复核候选。去「信息源监控」配置抓取 URL 并点「立即抓取」，抓回的对象会出现在这里。'
             : '该状态下暂无候选。'}
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="overflow-hidden rounded-xl border">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col />
+              <col className="w-28" />
+              <col className="w-16" />
+              <col className="w-20" />
+              <col className="w-24" />
+              <col className="w-28" />
+            </colgroup>
+            <thead>
+              <tr className="bg-muted/50 text-left text-[11px] font-medium text-muted-foreground">
+                <th className="px-3 py-2">名称</th>
+                <th className="px-3 py-2">类型</th>
+                <th className="px-3 py-2 text-center">匹配分</th>
+                <th className="px-3 py-2">展会</th>
+                <th className="px-3 py-2">展位/地区</th>
+                <th className="px-3 py-2 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((c) => (
+                <CandidateRow
+                  key={c.id}
+                  c={c}
+                  canEdit={canEdit}
+                  dupName={entityName(c.dedupEntityId)}
+                  eventShort={eventShort(c.eventId)}
+                  busy={reject.isPending || restore.isPending || promote.isPending || merge.isPending || score.isPending || batch.isPending}
+                  onPromote={() => setPromoteTarget(c)}
+                  onMerge={() => setMergeTarget(c)}
+                  onReject={() => {
+                    if (confirm(`确认丢弃候选「${c.name}」？`)) reject.mutate(c.id);
+                  }}
+                  onRestore={() => restore.mutate(c.id)}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

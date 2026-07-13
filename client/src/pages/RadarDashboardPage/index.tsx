@@ -355,7 +355,7 @@ export default function RadarDashboardPage() {
               </div>
             )}
             {view === 'candidates' && (
-              <CandidateReviewSection canEdit={isAdmin} entities={allEntities} />
+              <CandidateReviewSection canEdit={isAdmin} entities={allEntities} events={events} />
             )}
             {view === 'visual' && <VisualWallSection entities={filtered} />}
             {view === 'events' && (
